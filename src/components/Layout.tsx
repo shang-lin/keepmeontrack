@@ -46,7 +46,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
               <div className="w-4 h-4 bg-white rounded-sm"></div>
             </div>
-            <span className="ml-3 text-xl font-bold text-gray-900">GoalTracker</span>
+            <span className="ml-3 text-xl font-bold text-gray-900">KeepMeOnTrack</span>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -128,7 +128,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
               <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
                 <div className="w-4 h-4 bg-white rounded-sm"></div>
               </div>
-              <span className="ml-2 text-lg font-bold text-gray-900">GoalTracker</span>
+              <span className="ml-2 text-lg font-bold text-gray-900">KeepMeOnTrack</span>
             </div>
             <div className="w-6"></div>
           </div>
