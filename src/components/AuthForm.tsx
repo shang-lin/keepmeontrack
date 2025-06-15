@@ -53,9 +53,12 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
                 <div className="w-4 h-4 bg-white rounded-sm"></div>
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {mode === 'signup' ? 'Create Account' : 'Welcome Back'}
-            </h1>
+            <div className="mb-4">
+              <h1 className="text-xl font-bold text-gray-900 mb-1">KeepMeOnTrack</h1>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {mode === 'signup' ? 'Create Account' : 'Welcome Back'}
+              </h2>
+            </div>
             <p className="text-gray-600 mt-2">
               {mode === 'signup' 
                 ? 'Start your journey to achieving your goals' 
