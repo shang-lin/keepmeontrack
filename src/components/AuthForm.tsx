@@ -33,7 +33,7 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
         if (error) {
           toast.error(error.message);
         } else {
-          toast.success('Welcome back!');
+          toast.success('Welcome back to KeepMeOnTrack!');
         }
       }
     } catch (error) {
@@ -54,7 +54,7 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
               </div>
             </div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {mode === 'signup' ? 'Create Account' : 'Welcome Back'}
+              {mode === 'signup' ? 'Join KeepMeOnTrack' : 'Welcome Back to KeepMeOnTrack'}
             </h1>
             <p className="text-gray-600 mt-2">
               {mode === 'signup' 
