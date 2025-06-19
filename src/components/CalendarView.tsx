@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, addMonths, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, addMonths, subMonths, parseISO, startOfDay } from 'date-fns';
 import { useGoals } from '../hooks/useGoals';
 import { HabitModal } from './HabitModal';
 
@@ -18,7 +18,12 @@ export function CalendarView() {
   const habitsForDate = useMemo(() => {
     return habits.filter(habit => {
       if (!habit.due_date) return false;
-      return isSameDay(new Date(habit.due_date), selectedDate);
+      
+      // Parse the due date from the database and normalize both dates to start of day
+      const habitDate = startOfDay(parseISO(habit.due_date));
+      const compareDate = startOfDay(selectedDate);
+      
+      return isSameDay(habitDate, compareDate);
     });
   }, [habits, selectedDate]);
 
@@ -51,7 +56,12 @@ export function CalendarView() {
   const getHabitsForDay = (date: Date) => {
     return habits.filter(habit => {
       if (!habit.due_date) return false;
-      return isSameDay(new Date(habit.due_date), date);
+      
+      // Parse the due date from the database and normalize both dates to start of day
+      const habitDate = startOfDay(parseISO(habit.due_date));
+      const compareDate = startOfDay(date);
+      
+      return isSameDay(habitDate, compareDate);
     });
   };
 
