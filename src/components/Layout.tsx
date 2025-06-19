@@ -56,32 +56,34 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
           </button>
         </div>
 
-        <nav className="mt-6 px-3">
-          {navigation.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  onTabChange(item.id);
-                  setSidebarOpen(false);
-                }}
-                className={`w-full flex items-center px-3 py-3 mb-1 text-sm font-medium rounded-lg transition-colors ${
-                  activeTab === item.id
-                    ? 'bg-indigo-100 text-indigo-700'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-              >
-                <Icon className="w-5 h-5 mr-3" />
-                {item.name}
-              </button>
-            );
-          })}
+        <nav className="mt-6 px-3 flex-1">
+          <div className="space-y-2">
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    onTabChange(item.id);
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors ${
+                    activeTab === item.id
+                      ? 'bg-indigo-100 text-indigo-700'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
+                  {item.name}
+                </button>
+              );
+            })}
+          </div>
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
           <div className="flex items-center mb-4">
-            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
               <span className="text-indigo-600 font-medium">
                 {user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U'}
               </span>
@@ -108,7 +110,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
             onClick={handleSignOut}
             className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
           >
-            <LogOut className="w-4 h-4 mr-3" />
+            <LogOut className="w-4 h-4 mr-3 flex-shrink-0" />
             Sign Out
           </button>
         </div>
