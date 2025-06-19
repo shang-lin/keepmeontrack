@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, addMonths, subMonths, parseISO, startOfDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, addMonths, subMonths, parseISO, startOfDay, isValid } from 'date-fns';
 import { useGoals } from '../hooks/useGoals';
 import { HabitModal } from './HabitModal';
 
@@ -16,14 +16,47 @@ export function CalendarView() {
   const calendarDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
   const habitsForDate = useMemo(() => {
+    console.log('All habits:', habits);
+    console.log('Selected date:', selectedDate);
+    
     return habits.filter(habit => {
-      if (!habit.due_date) return false;
+      console.log('Checking habit:', habit.title, 'due_date:', habit.due_date);
       
-      // Parse the due date from the database and normalize both dates to start of day
-      const habitDate = startOfDay(parseISO(habit.due_date));
-      const compareDate = startOfDay(selectedDate);
+      if (!habit.due_date) {
+        console.log('No due date for habit:', habit.title);
+        return false;
+      }
       
-      return isSameDay(habitDate, compareDate);
+      try {
+        // Handle different date formats
+        let habitDate;
+        if (typeof habit.due_date === 'string') {
+          // If it's already a date string like "2024-01-15"
+          if (habit.due_date.includes('T')) {
+            habitDate = startOfDay(parseISO(habit.due_date));
+          } else {
+            // Simple date format like "2024-01-15"
+            habitDate = startOfDay(new Date(habit.due_date + 'T00:00:00'));
+          }
+        } else {
+          habitDate = startOfDay(new Date(habit.due_date));
+        }
+        
+        const compareDate = startOfDay(selectedDate);
+        
+        console.log('Habit date:', habitDate, 'Compare date:', compareDate);
+        console.log('Dates match:', isSameDay(habitDate, compareDate));
+        
+        if (!isValid(habitDate)) {
+          console.log('Invalid habit date for:', habit.title);
+          return false;
+        }
+        
+        return isSameDay(habitDate, compareDate);
+      } catch (error) {
+        console.error('Error parsing date for habit:', habit.title, error);
+        return false;
+      }
     });
   }, [habits, selectedDate]);
 
@@ -57,11 +90,32 @@ export function CalendarView() {
     return habits.filter(habit => {
       if (!habit.due_date) return false;
       
-      // Parse the due date from the database and normalize both dates to start of day
-      const habitDate = startOfDay(parseISO(habit.due_date));
-      const compareDate = startOfDay(date);
-      
-      return isSameDay(habitDate, compareDate);
+      try {
+        // Handle different date formats
+        let habitDate;
+        if (typeof habit.due_date === 'string') {
+          // If it's already a date string like "2024-01-15"
+          if (habit.due_date.includes('T')) {
+            habitDate = startOfDay(parseISO(habit.due_date));
+          } else {
+            // Simple date format like "2024-01-15"
+            habitDate = startOfDay(new Date(habit.due_date + 'T00:00:00'));
+          }
+        } else {
+          habitDate = startOfDay(new Date(habit.due_date));
+        }
+        
+        const compareDate = startOfDay(date);
+        
+        if (!isValid(habitDate)) {
+          return false;
+        }
+        
+        return isSameDay(habitDate, compareDate);
+      } catch (error) {
+        console.error('Error parsing date for habit:', habit.title, error);
+        return false;
+      }
     });
   };
 
@@ -80,6 +134,25 @@ export function CalendarView() {
           <Plus className="w-5 h-5 mr-2 inline" />
           Add Habit
         </button>
+      </div>
+
+      {/* Debug Info */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <h3 className="font-medium text-yellow-800 mb-2">Debug Info:</h3>
+        <p className="text-sm text-yellow-700">Total habits: {habits.length}</p>
+        <p className="text-sm text-yellow-700">Habits with due dates: {habits.filter(h => h.due_date).length}</p>
+        <p className="text-sm text-yellow-700">Selected date: {format(selectedDate, 'yyyy-MM-dd')}</p>
+        <p className="text-sm text-yellow-700">Habits for selected date: {habitsForDate.length}</p>
+        {habits.length > 0 && (
+          <div className="mt-2">
+            <p className="text-sm text-yellow-700 font-medium">All habits:</p>
+            {habits.map(habit => (
+              <p key={habit.id} className="text-xs text-yellow-600">
+                {habit.title} - Due: {habit.due_date || 'No date'}
+              </p>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
