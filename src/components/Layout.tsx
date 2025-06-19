@@ -40,8 +40,9 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}>
-        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col`}>
+        {/* Sidebar Header */}
+        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center">
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
               <div className="w-4 h-4 bg-white rounded-sm"></div>
@@ -56,8 +57,9 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
           </button>
         </div>
 
-        <nav className="mt-6 px-3 flex-1">
-          <div className="space-y-2">
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-6 overflow-y-auto">
+          <div className="space-y-1">
             {navigation.map((item) => {
               const Icon = item.icon;
               return (
@@ -74,14 +76,15 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
                   }`}
                 >
                   <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
-                  {item.name}
+                  <span>{item.name}</span>
                 </button>
               );
             })}
           </div>
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+        {/* User Profile Section */}
+        <div className="p-4 border-t border-gray-200 flex-shrink-0">
           <div className="flex items-center mb-4">
             <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
               <span className="text-indigo-600 font-medium">
