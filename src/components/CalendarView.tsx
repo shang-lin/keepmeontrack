@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, addMonths, subMonths, parseISO, startOfDay, isValid } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, addMonths, subMonths, parseISO, startOfDay, isValid, isBefore, isAfter } from 'date-fns';
 import { useGoals } from '../hooks/useGoals';
 import { HabitModal } from './HabitModal';
 
@@ -16,49 +16,72 @@ export function CalendarView() {
   const calendarDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
   const habitsForDate = useMemo(() => {
-    console.log('All habits:', habits);
-    console.log('Selected date:', selectedDate);
-    
     return habits.filter(habit => {
-      console.log('Checking habit:', habit.title, 'due_date:', habit.due_date);
-      
       if (!habit.due_date) {
-        console.log('No due date for habit:', habit.title);
-        return false;
+        // If no due date, show habit every day based on frequency
+        return shouldShowHabitOnDate(habit, selectedDate);
       }
       
       try {
-        // Handle different date formats
-        let habitDate;
+        // Parse the due date
+        let habitDueDate;
         if (typeof habit.due_date === 'string') {
-          // If it's already a date string like "2024-01-15"
           if (habit.due_date.includes('T')) {
-            habitDate = startOfDay(parseISO(habit.due_date));
+            habitDueDate = startOfDay(parseISO(habit.due_date));
           } else {
-            // Simple date format like "2024-01-15"
-            habitDate = startOfDay(new Date(habit.due_date + 'T00:00:00'));
+            habitDueDate = startOfDay(new Date(habit.due_date + 'T00:00:00'));
           }
         } else {
-          habitDate = startOfDay(new Date(habit.due_date));
+          habitDueDate = startOfDay(new Date(habit.due_date));
         }
         
         const compareDate = startOfDay(selectedDate);
+        const today = startOfDay(new Date());
         
-        console.log('Habit date:', habitDate, 'Compare date:', compareDate);
-        console.log('Dates match:', isSameDay(habitDate, compareDate));
-        
-        if (!isValid(habitDate)) {
-          console.log('Invalid habit date for:', habit.title);
+        if (!isValid(habitDueDate)) {
           return false;
         }
         
-        return isSameDay(habitDate, compareDate);
+        // Show habit if:
+        // 1. Selected date is today or after today (not in the past)
+        // 2. Selected date is on or before the due date
+        // 3. The habit should appear on this date based on frequency
+        const isNotInPast = !isBefore(compareDate, today);
+        const isBeforeDueDate = !isAfter(compareDate, habitDueDate);
+        const shouldShowToday = shouldShowHabitOnDate(habit, selectedDate);
+        
+        return isNotInPast && isBeforeDueDate && shouldShowToday;
       } catch (error) {
         console.error('Error parsing date for habit:', habit.title, error);
         return false;
       }
     });
   }, [habits, selectedDate]);
+
+  // Helper function to determine if a habit should show on a specific date based on frequency
+  const shouldShowHabitOnDate = (habit, date) => {
+    const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const dayOfMonth = date.getDate();
+    
+    switch (habit.frequency) {
+      case 'daily':
+        return true; // Show every day
+      case 'weekly':
+        // For weekly habits, show on specific days of the week
+        // For simplicity, let's show weekly habits on the same day of week as created
+        // You could make this more sophisticated by storing preferred days
+        return dayOfWeek === 1; // Show on Mondays for now
+      case 'monthly':
+        // Show on the same day of month as created, or last day if month is shorter
+        return dayOfMonth === 1; // Show on 1st of month for now
+      case 'custom':
+        // For custom frequency, show every X days
+        // This would need more sophisticated logic with a start date
+        return true; // Show every day for now
+      default:
+        return true;
+    }
+  };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     if (direction === 'prev') {
@@ -88,30 +111,39 @@ export function CalendarView() {
 
   const getHabitsForDay = (date: Date) => {
     return habits.filter(habit => {
-      if (!habit.due_date) return false;
+      if (!habit.due_date) {
+        return shouldShowHabitOnDate(habit, date);
+      }
       
       try {
-        // Handle different date formats
-        let habitDate;
+        // Parse the due date
+        let habitDueDate;
         if (typeof habit.due_date === 'string') {
-          // If it's already a date string like "2024-01-15"
           if (habit.due_date.includes('T')) {
-            habitDate = startOfDay(parseISO(habit.due_date));
+            habitDueDate = startOfDay(parseISO(habit.due_date));
           } else {
-            // Simple date format like "2024-01-15"
-            habitDate = startOfDay(new Date(habit.due_date + 'T00:00:00'));
+            habitDueDate = startOfDay(new Date(habit.due_date + 'T00:00:00'));
           }
         } else {
-          habitDate = startOfDay(new Date(habit.due_date));
+          habitDueDate = startOfDay(new Date(habit.due_date));
         }
         
         const compareDate = startOfDay(date);
+        const today = startOfDay(new Date());
         
-        if (!isValid(habitDate)) {
+        if (!isValid(habitDueDate)) {
           return false;
         }
         
-        return isSameDay(habitDate, compareDate);
+        // Show habit if:
+        // 1. Date is today or after today (not in the past)
+        // 2. Date is on or before the due date
+        // 3. The habit should appear on this date based on frequency
+        const isNotInPast = !isBefore(compareDate, today);
+        const isBeforeDueDate = !isAfter(compareDate, habitDueDate);
+        const shouldShowToday = shouldShowHabitOnDate(habit, date);
+        
+        return isNotInPast && isBeforeDueDate && shouldShowToday;
       } catch (error) {
         console.error('Error parsing date for habit:', habit.title, error);
         return false;
@@ -134,25 +166,6 @@ export function CalendarView() {
           <Plus className="w-5 h-5 mr-2 inline" />
           Add Habit
         </button>
-      </div>
-
-      {/* Debug Info */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <h3 className="font-medium text-yellow-800 mb-2">Debug Info:</h3>
-        <p className="text-sm text-yellow-700">Total habits: {habits.length}</p>
-        <p className="text-sm text-yellow-700">Habits with due dates: {habits.filter(h => h.due_date).length}</p>
-        <p className="text-sm text-yellow-700">Selected date: {format(selectedDate, 'yyyy-MM-dd')}</p>
-        <p className="text-sm text-yellow-700">Habits for selected date: {habitsForDate.length}</p>
-        {habits.length > 0 && (
-          <div className="mt-2">
-            <p className="text-sm text-yellow-700 font-medium">All habits:</p>
-            {habits.map(habit => (
-              <p key={habit.id} className="text-xs text-yellow-600">
-                {habit.title} - Due: {habit.due_date || 'No date'}
-              </p>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -217,10 +230,17 @@ export function CalendarView() {
                 >
                   <span className="block">{format(day, 'd')}</span>
                   {dayHabits.length > 0 && (
-                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        isSelected ? 'bg-white' : 'bg-indigo-600'
-                      }`}></div>
+                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex space-x-1">
+                      {dayHabits.slice(0, 3).map((_, index) => (
+                        <div key={index} className={`w-1.5 h-1.5 rounded-full ${
+                          isSelected ? 'bg-white' : 'bg-indigo-600'
+                        }`}></div>
+                      ))}
+                      {dayHabits.length > 3 && (
+                        <div className={`text-xs ${isSelected ? 'text-white' : 'text-indigo-600'}`}>
+                          +{dayHabits.length - 3}
+                        </div>
+                      )}
                     </div>
                   )}
                 </button>
@@ -269,6 +289,11 @@ export function CalendarView() {
                             habit.is_completed ? 'text-emerald-700' : 'text-gray-600'
                           }`}>
                             {habit.description}
+                          </p>
+                        )}
+                        {habit.due_date && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Due: {format(new Date(habit.due_date), 'MMM dd, yyyy')}
                           </p>
                         )}
                       </div>
