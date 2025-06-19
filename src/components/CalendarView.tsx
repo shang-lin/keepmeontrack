@@ -15,6 +15,31 @@ export function CalendarView() {
   const monthEnd = endOfMonth(monthStart);
   const calendarDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
+  // Helper function to determine if a habit should show on a specific date based on frequency
+  const shouldShowHabitOnDate = (habit, date) => {
+    const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const dayOfMonth = date.getDate();
+    
+    switch (habit.frequency) {
+      case 'daily':
+        return true; // Show every day
+      case 'weekly':
+        // For weekly habits, show on specific days of the week
+        // For simplicity, let's show weekly habits on the same day of week as created
+        // You could make this more sophisticated by storing preferred days
+        return dayOfWeek === 1; // Show on Mondays for now
+      case 'monthly':
+        // Show on the same day of month as created, or last day if month is shorter
+        return dayOfMonth === 1; // Show on 1st of month for now
+      case 'custom':
+        // For custom frequency, show every X days
+        // This would need more sophisticated logic with a start date
+        return true; // Show every day for now
+      default:
+        return true;
+    }
+  };
+
   const habitsForDate = useMemo(() => {
     return habits.filter(habit => {
       if (!habit.due_date) {
@@ -57,31 +82,6 @@ export function CalendarView() {
       }
     });
   }, [habits, selectedDate]);
-
-  // Helper function to determine if a habit should show on a specific date based on frequency
-  const shouldShowHabitOnDate = (habit, date) => {
-    const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const dayOfMonth = date.getDate();
-    
-    switch (habit.frequency) {
-      case 'daily':
-        return true; // Show every day
-      case 'weekly':
-        // For weekly habits, show on specific days of the week
-        // For simplicity, let's show weekly habits on the same day of week as created
-        // You could make this more sophisticated by storing preferred days
-        return dayOfWeek === 1; // Show on Mondays for now
-      case 'monthly':
-        // Show on the same day of month as created, or last day if month is shorter
-        return dayOfMonth === 1; // Show on 1st of month for now
-      case 'custom':
-        // For custom frequency, show every X days
-        // This would need more sophisticated logic with a start date
-        return true; // Show every day for now
-      default:
-        return true;
-    }
-  };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     if (direction === 'prev') {
