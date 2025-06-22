@@ -4,17 +4,20 @@ import { useAuth } from './useAuth';
 
 type Goal = Database['public']['Tables']['goals']['Row'];
 type Habit = Database['public']['Tables']['habits']['Row'];
+type HabitCompletion = Database['public']['Tables']['habit_completions']['Row'];
 
 export function useGoals() {
   const { user } = useAuth();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [habits, setHabits] = useState<Habit[]>([]);
+  const [habitCompletions, setHabitCompletions] = useState<HabitCompletion[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
       fetchGoals();
       fetchHabits();
+      fetchHabitCompletions();
     }
   }, [user]);
 
@@ -48,6 +51,21 @@ export function useGoals() {
       console.error('Error fetching habits:', error);
     } else {
       setHabits(data || []);
+    }
+  };
+
+  const fetchHabitCompletions = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('habit_completions')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error fetching habit completions:', error);
+    } else {
+      setHabitCompletions(data || []);
     }
   };
 
@@ -152,6 +170,58 @@ export function useGoals() {
     return true;
   };
 
+  const toggleHabitCompletion = async (habitId: string, date: Date) => {
+    if (!user) return false;
+
+    const dateString = date.toISOString().split('T')[0];
+    
+    // Check if completion already exists for this habit on this date
+    const existingCompletion = habitCompletions.find(
+      completion => 
+        completion.habit_id === habitId && 
+        completion.completed_at?.split('T')[0] === dateString
+    );
+
+    if (existingCompletion) {
+      // Remove completion
+      const { error } = await supabase
+        .from('habit_completions')
+        .delete()
+        .eq('id', existingCompletion.id);
+
+      if (error) {
+        console.error('Error removing habit completion:', error);
+        return false;
+      }
+    } else {
+      // Add completion
+      const { error } = await supabase
+        .from('habit_completions')
+        .insert([{
+          habit_id: habitId,
+          user_id: user.id,
+          completed_at: date.toISOString(),
+        }]);
+
+      if (error) {
+        console.error('Error adding habit completion:', error);
+        return false;
+      }
+    }
+
+    await fetchHabitCompletions();
+    return true;
+  };
+
+  const isHabitCompletedOnDate = (habitId: string, date: Date) => {
+    const dateString = date.toISOString().split('T')[0];
+    return habitCompletions.some(
+      completion => 
+        completion.habit_id === habitId && 
+        completion.completed_at?.split('T')[0] === dateString
+    );
+  };
+
   const reorderHabits = async (habitIds: string[]) => {
     const updates = habitIds.map((id, index) => ({
       id,
@@ -171,6 +241,7 @@ export function useGoals() {
   return {
     goals,
     habits,
+    habitCompletions,
     loading,
     createGoal,
     updateGoal,
@@ -178,10 +249,13 @@ export function useGoals() {
     createHabit,
     updateHabit,
     deleteHabit,
+    toggleHabitCompletion,
+    isHabitCompletedOnDate,
     reorderHabits,
     refetch: () => {
       fetchGoals();
       fetchHabits();
+      fetchHabitCompletions();
     },
   };
 }

@@ -9,7 +9,7 @@ import { AIHabitGenerator } from './AIHabitGenerator';
 import toast from 'react-hot-toast';
 
 export function Dashboard() {
-  const { goals, habits, loading, createGoal, updateGoal, deleteGoal, createHabit, updateHabit, deleteHabit } = useGoals();
+  const { goals, habits, loading, createGoal, updateGoal, deleteGoal, createHabit, updateHabit, deleteHabit, toggleHabitCompletion, isHabitCompletedOnDate } = useGoals();
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [habitModalOpen, setHabitModalOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
@@ -72,9 +72,11 @@ export function Dashboard() {
   };
 
   const handleToggleHabitComplete = async (id, completed) => {
-    const result = await updateHabit(id, { is_completed: completed });
+    const today = new Date();
+    const result = await toggleHabitCompletion(id, today);
     if (result) {
-      toast.success(completed ? 'Habit completed!' : 'Habit marked as incomplete');
+      const isNowCompleted = isHabitCompletedOnDate(id, today);
+      toast.success(isNowCompleted ? 'Habit completed!' : 'Habit marked as incomplete');
     }
   };
 
@@ -99,8 +101,9 @@ export function Dashboard() {
   const activeGoals = goals.filter(goal => goal.status === 'active');
   const completedGoals = goals.filter(goal => goal.status === 'completed');
   const totalHabits = habits.length;
-  const completedHabits = habits.filter(habit => habit.is_completed).length;
-  const completionRate = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0;
+  const today = new Date();
+  const completedHabitsToday = habits.filter(habit => isHabitCompletedOnDate(habit.id, today)).length;
+  const completionRate = totalHabits > 0 ? Math.round((completedHabitsToday / totalHabits) * 100) : 0;
 
   return (
     <div className="space-y-8">
@@ -172,7 +175,7 @@ export function Dashboard() {
               <TrendingUp className="w-6 h-6 text-purple-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Completion Rate</p>
+              <p className="text-sm font-medium text-gray-600">Today's Progress</p>
               <p className="text-2xl font-bold text-gray-900">{completionRate}%</p>
             </div>
           </div>
@@ -240,15 +243,18 @@ export function Dashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {habits.map((habit) => (
-              <HabitCard
-                key={habit.id}
-                habit={habit}
-                onEdit={openHabitModal}
-                onDelete={handleDeleteHabit}
-                onToggleComplete={handleToggleHabitComplete}
-              />
-            ))}
+            {habits.map((habit) => {
+              const isCompletedToday = isHabitCompletedOnDate(habit.id, today);
+              return (
+                <HabitCard
+                  key={habit.id}
+                  habit={{...habit, is_completed: isCompletedToday}}
+                  onEdit={openHabitModal}
+                  onDelete={handleDeleteHabit}
+                  onToggleComplete={handleToggleHabitComplete}
+                />
+              );
+            })}
           </div>
         )}
       </div>

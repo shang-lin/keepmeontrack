@@ -5,7 +5,7 @@ import { useGoals } from '../hooks/useGoals';
 import { HabitModal } from './HabitModal';
 
 export function CalendarView() {
-  const { goals, habits, updateHabit } = useGoals();
+  const { goals, habits, toggleHabitCompletion, isHabitCompletedOnDate } = useGoals();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [habitModalOpen, setHabitModalOpen] = useState(false);
@@ -105,8 +105,8 @@ export function CalendarView() {
     setHabitModalOpen(true);
   };
 
-  const handleToggleHabitComplete = async (habitId: string, completed: boolean) => {
-    await updateHabit(habitId, { is_completed: completed });
+  const handleToggleHabitComplete = async (habitId: string, date: Date) => {
+    await toggleHabitCompletion(habitId, date);
   };
 
   const getHabitsForDay = (date: Date) => {
@@ -268,58 +268,62 @@ export function CalendarView() {
               </div>
             ) : (
               <div className="space-y-3">
-                {habitsForDate.map((habit) => (
-                  <div
-                    key={habit.id}
-                    className={`p-4 border rounded-lg transition-colors ${
-                      habit.is_completed
-                        ? 'border-emerald-200 bg-emerald-50'
-                        : 'border-gray-200 bg-white hover:border-indigo-300'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className={`font-medium ${
-                          habit.is_completed ? 'text-emerald-900 line-through' : 'text-gray-900'
-                        }`}>
-                          {habit.title}
-                        </h4>
-                        {habit.description && (
-                          <p className={`text-sm mt-1 ${
-                            habit.is_completed ? 'text-emerald-700' : 'text-gray-600'
+                {habitsForDate.map((habit) => {
+                  const isCompleted = isHabitCompletedOnDate(habit.id, selectedDate);
+                  
+                  return (
+                    <div
+                      key={habit.id}
+                      className={`p-4 border rounded-lg transition-colors ${
+                        isCompleted
+                          ? 'border-emerald-200 bg-emerald-50'
+                          : 'border-gray-200 bg-white hover:border-indigo-300'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className={`font-medium ${
+                            isCompleted ? 'text-emerald-900 line-through' : 'text-gray-900'
                           }`}>
-                            {habit.description}
-                          </p>
-                        )}
-                        {habit.due_date && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            Due: {format(new Date(habit.due_date), 'MMM dd, yyyy')}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleToggleHabitComplete(habit.id, !habit.is_completed)}
-                          className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-                            habit.is_completed
-                              ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          {habit.is_completed ? 'Completed' : 'Mark Done'}
-                        </button>
-                        <button
-                          onClick={() => handleEditHabit(habit)}
-                          className="text-gray-400 hover:text-gray-600 transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
+                            {habit.title}
+                          </h4>
+                          {habit.description && (
+                            <p className={`text-sm mt-1 ${
+                              isCompleted ? 'text-emerald-700' : 'text-gray-600'
+                            }`}>
+                              {habit.description}
+                            </p>
+                          )}
+                          {habit.due_date && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Due: {format(new Date(habit.due_date), 'MMM dd, yyyy')}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleToggleHabitComplete(habit.id, selectedDate)}
+                            className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                              isCompleted
+                                ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {isCompleted ? 'Completed' : 'Mark Done'}
+                          </button>
+                          <button
+                            onClick={() => handleEditHabit(habit)}
+                            className="text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
