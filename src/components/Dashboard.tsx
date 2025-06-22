@@ -1,19 +1,40 @@
 import React, { useState } from 'react';
-import { Plus, Target, TrendingUp, Calendar, CheckCircle } from 'lucide-react';
+import { Plus, Target, TrendingUp, Calendar, CheckCircle, Flag } from 'lucide-react';
 import { useGoals } from '../hooks/useGoals';
 import { GoalCard } from './GoalCard';
 import { GoalModal } from './GoalModal';
 import { HabitModal } from './HabitModal';
+import { MilestoneModal } from './MilestoneModal';
 import { HabitCard } from './HabitCard';
 import { AIHabitGenerator } from './AIHabitGenerator';
 import toast from 'react-hot-toast';
 
 export function Dashboard() {
-  const { goals, habits, loading, createGoal, updateGoal, deleteGoal, createHabit, updateHabit, deleteHabit, toggleHabitCompletion, isHabitCompletedOnDate } = useGoals();
+  const { 
+    goals, 
+    habits, 
+    milestones,
+    loading, 
+    createGoal, 
+    updateGoal, 
+    deleteGoal, 
+    createHabit, 
+    updateHabit, 
+    deleteHabit, 
+    createMilestone,
+    updateMilestone,
+    deleteMilestone,
+    toggleHabitCompletion, 
+    isHabitCompletedOnDate,
+    getMilestonesForGoal
+  } = useGoals();
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [habitModalOpen, setHabitModalOpen] = useState(false);
+  const [milestoneModalOpen, setMilestoneModalOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
   const [selectedHabit, setSelectedHabit] = useState(null);
+  const [selectedMilestone, setSelectedMilestone] = useState(null);
+  const [selectedGoalForMilestone, setSelectedGoalForMilestone] = useState('');
 
   const handleCreateGoal = async (goalData) => {
     const result = await createGoal(goalData);
@@ -71,12 +92,47 @@ export function Dashboard() {
     }
   };
 
+  const handleCreateMilestone = async (milestoneData) => {
+    const result = await createMilestone(milestoneData);
+    if (result) {
+      toast.success('Milestone created successfully!');
+    } else {
+      toast.error('Failed to create milestone');
+    }
+  };
+
+  const handleUpdateMilestone = async (milestoneData) => {
+    if (!selectedMilestone) return;
+    const result = await updateMilestone(selectedMilestone.id, milestoneData);
+    if (result) {
+      toast.success('Milestone updated successfully!');
+    } else {
+      toast.error('Failed to update milestone');
+    }
+  };
+
+  const handleDeleteMilestone = async (id) => {
+    const result = await deleteMilestone(id);
+    if (result) {
+      toast.success('Milestone deleted successfully!');
+    } else {
+      toast.error('Failed to delete milestone');
+    }
+  };
+
   const handleToggleHabitComplete = async (id, completed) => {
     const today = new Date();
     const result = await toggleHabitCompletion(id, today);
     if (result) {
       const isNowCompleted = isHabitCompletedOnDate(id, today);
       toast.success(isNowCompleted ? 'Habit completed!' : 'Habit marked as incomplete');
+    }
+  };
+
+  const handleToggleMilestoneComplete = async (id, completed) => {
+    const result = await updateMilestone(id, { is_completed: completed });
+    if (result) {
+      toast.success(completed ? 'Milestone completed!' : 'Milestone marked as incomplete');
     }
   };
 
@@ -88,6 +144,12 @@ export function Dashboard() {
   const openHabitModal = (habit = null) => {
     setSelectedHabit(habit);
     setHabitModalOpen(true);
+  };
+
+  const openMilestoneModal = (milestone = null, goalId = '') => {
+    setSelectedMilestone(milestone);
+    setSelectedGoalForMilestone(goalId);
+    setMilestoneModalOpen(true);
   };
 
   if (loading) {
@@ -104,6 +166,8 @@ export function Dashboard() {
   const today = new Date();
   const completedHabitsToday = habits.filter(habit => isHabitCompletedOnDate(habit.id, today)).length;
   const completionRate = totalHabits > 0 ? Math.round((completedHabitsToday / totalHabits) * 100) : 0;
+  const totalMilestones = milestones.length;
+  const completedMilestones = milestones.filter(m => m.is_completed).length;
 
   return (
     <div className="space-y-8">
@@ -132,7 +196,7 @@ export function Dashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
             <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
@@ -180,6 +244,18 @@ export function Dashboard() {
             </div>
           </div>
         </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center">
+            <div className="w-12 h-12 bg-rose-100 rounded-lg flex items-center justify-center">
+              <Flag className="w-6 h-6 text-rose-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Milestones</p>
+              <p className="text-2xl font-bold text-gray-900">{completedMilestones}/{totalMilestones}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* AI Habit Generator for first active goal */}
@@ -215,8 +291,13 @@ export function Dashboard() {
               <GoalCard
                 key={goal.id}
                 goal={goal}
+                milestones={getMilestonesForGoal(goal.id)}
                 onEdit={openGoalModal}
                 onDelete={handleDeleteGoal}
+                onAddMilestone={(goalId) => openMilestoneModal(null, goalId)}
+                onEditMilestone={(milestone) => openMilestoneModal(milestone, milestone.goal_id)}
+                onDeleteMilestone={handleDeleteMilestone}
+                onToggleMilestoneComplete={handleToggleMilestoneComplete}
               />
             ))}
           </div>
@@ -279,6 +360,18 @@ export function Dashboard() {
         onSave={selectedHabit ? handleUpdateHabit : handleCreateHabit}
         habit={selectedHabit}
         goals={goals}
+      />
+
+      <MilestoneModal
+        isOpen={milestoneModalOpen}
+        onClose={() => {
+          setMilestoneModalOpen(false);
+          setSelectedMilestone(null);
+          setSelectedGoalForMilestone('');
+        }}
+        onSave={selectedMilestone ? handleUpdateMilestone : handleCreateMilestone}
+        milestone={selectedMilestone}
+        goalId={selectedGoalForMilestone}
       />
     </div>
   );

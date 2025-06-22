@@ -1,18 +1,35 @@
 import React, { useState } from 'react';
-import { MoreHorizontal, Edit, Trash2, Target, Calendar, CheckCircle } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Target, Calendar, CheckCircle, Plus, Flag } from 'lucide-react';
 import { Database } from '../lib/supabase';
 import { format } from 'date-fns';
+import { MilestoneCard } from './MilestoneCard';
 
 type Goal = Database['public']['Tables']['goals']['Row'];
+type Milestone = Database['public']['Tables']['milestones']['Row'];
 
 interface GoalCardProps {
   goal: Goal;
+  milestones: Milestone[];
   onEdit: (goal: Goal) => void;
   onDelete: (id: string) => void;
+  onAddMilestone: (goalId: string) => void;
+  onEditMilestone: (milestone: Milestone) => void;
+  onDeleteMilestone: (id: string) => void;
+  onToggleMilestoneComplete: (id: string, completed: boolean) => void;
 }
 
-export function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
+export function GoalCard({ 
+  goal, 
+  milestones, 
+  onEdit, 
+  onDelete, 
+  onAddMilestone,
+  onEditMilestone,
+  onDeleteMilestone,
+  onToggleMilestoneComplete
+}: GoalCardProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const [showMilestones, setShowMilestones] = useState(false);
 
   const getStatusColor = (status: Goal['status']) => {
     switch (status) {
@@ -37,6 +54,8 @@ export function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
   };
 
   const StatusIcon = getStatusIcon(goal.status);
+  const completedMilestones = milestones.filter(m => m.is_completed).length;
+  const totalMilestones = milestones.length;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
@@ -92,7 +111,7 @@ export function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
         <p className="text-gray-600 mb-4 line-clamp-2">{goal.description}</p>
       )}
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-500">Progress</span>
@@ -113,6 +132,73 @@ export function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
               {format(new Date(goal.target_date), 'MMM dd, yyyy')}
             </p>
           </div>
+        )}
+      </div>
+
+      {/* Milestones Section */}
+      <div className="border-t border-gray-200 pt-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center">
+            <Flag className="w-4 h-4 text-gray-500 mr-2" />
+            <span className="text-sm font-medium text-gray-700">
+              Milestones ({completedMilestones}/{totalMilestones})
+            </span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => onAddMilestone(goal.id)}
+              className="text-indigo-600 hover:text-indigo-700 p-1 rounded-full hover:bg-indigo-50 transition-colors"
+              title="Add milestone"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+            {totalMilestones > 0 && (
+              <button
+                onClick={() => setShowMilestones(!showMilestones)}
+                className="text-gray-500 hover:text-gray-700 text-xs font-medium transition-colors"
+              >
+                {showMilestones ? 'Hide' : 'Show'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {totalMilestones === 0 ? (
+          <div className="text-center py-4">
+            <p className="text-sm text-gray-500">No milestones yet</p>
+            <button
+              onClick={() => onAddMilestone(goal.id)}
+              className="text-indigo-600 hover:text-indigo-700 text-sm font-medium mt-1 transition-colors"
+            >
+              Add your first milestone
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Milestone Progress Bar */}
+            <div className="mb-3">
+              <div className="w-full bg-gray-200 rounded-full h-1.5">
+                <div
+                  className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
+                  style={{ width: `${totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : 0}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {showMilestones && (
+              <div className="space-y-2">
+                {milestones.map((milestone) => (
+                  <MilestoneCard
+                    key={milestone.id}
+                    milestone={milestone}
+                    onEdit={onEditMilestone}
+                    onDelete={onDeleteMilestone}
+                    onToggleComplete={onToggleMilestoneComplete}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
