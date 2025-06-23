@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
-import { MoreHorizontal, Edit, Trash2, Target, Calendar, CheckCircle, Plus, Flag } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Target, Calendar, CheckCircle, Plus, Flag, TrendingUp } from 'lucide-react';
 import { Database } from '../lib/supabase';
 import { format } from 'date-fns';
 import { MilestoneCard } from './MilestoneCard';
 
 type Goal = Database['public']['Tables']['goals']['Row'];
 type Milestone = Database['public']['Tables']['milestones']['Row'];
+type Habit = Database['public']['Tables']['habits']['Row'];
 
 interface GoalCardProps {
   goal: Goal;
   milestones: Milestone[];
+  habits: Habit[];
+  realTimeProgress: number;
   onEdit: (goal: Goal) => void;
   onDelete: (id: string) => void;
   onAddMilestone: (goalId: string) => void;
@@ -21,6 +24,8 @@ interface GoalCardProps {
 export function GoalCard({ 
   goal, 
   milestones, 
+  habits,
+  realTimeProgress,
   onEdit, 
   onDelete, 
   onAddMilestone,
@@ -56,6 +61,18 @@ export function GoalCard({
   const StatusIcon = getStatusIcon(goal.status);
   const completedMilestones = milestones.filter(m => m.is_completed).length;
   const totalMilestones = milestones.length;
+  const totalHabits = habits.length;
+
+  // Use real-time progress instead of stored progress
+  const currentProgress = realTimeProgress;
+
+  const getProgressColor = (progress: number) => {
+    if (progress >= 80) return 'bg-emerald-500';
+    if (progress >= 60) return 'bg-blue-500';
+    if (progress >= 40) return 'bg-amber-500';
+    if (progress >= 20) return 'bg-orange-500';
+    return 'bg-red-500';
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
@@ -111,17 +128,27 @@ export function GoalCard({
         <p className="text-gray-600 mb-4 line-clamp-2">{goal.description}</p>
       )}
 
+      {/* Progress Section */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-500">Progress</span>
-            <span className="text-sm font-medium text-gray-900">{goal.progress}%</span>
+            <div className="flex items-center">
+              <TrendingUp className="w-4 h-4 text-gray-500 mr-1" />
+              <span className="text-sm text-gray-500">Progress</span>
+            </div>
+            <span className="text-sm font-medium text-gray-900">{currentProgress}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
-              className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${goal.progress}%` }}
+              className={`h-2 rounded-full transition-all duration-500 ${getProgressColor(currentProgress)}`}
+              style={{ width: `${currentProgress}%` }}
             ></div>
+          </div>
+          
+          {/* Progress breakdown */}
+          <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+            <span>{totalHabits} habits</span>
+            <span>{completedMilestones}/{totalMilestones} milestones</span>
           </div>
         </div>
         

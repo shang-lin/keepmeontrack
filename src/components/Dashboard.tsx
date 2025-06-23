@@ -26,7 +26,9 @@ export function Dashboard() {
     deleteMilestone,
     toggleHabitCompletion, 
     isHabitCompletedOnDate,
-    getMilestonesForGoal
+    getMilestonesForGoal,
+    getHabitsForGoal,
+    getGoalProgress
   } = useGoals();
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [habitModalOpen, setHabitModalOpen] = useState(false);
@@ -169,6 +171,11 @@ export function Dashboard() {
   const totalMilestones = milestones.length;
   const completedMilestones = milestones.filter(m => m.is_completed).length;
 
+  // Calculate overall progress across all active goals
+  const overallProgress = activeGoals.length > 0 
+    ? Math.round(activeGoals.reduce((sum, goal) => sum + getGoalProgress(goal.id), 0) / activeGoals.length)
+    : 0;
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -227,8 +234,8 @@ export function Dashboard() {
               <Calendar className="w-6 h-6 text-amber-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Habits</p>
-              <p className="text-2xl font-bold text-gray-900">{totalHabits}</p>
+              <p className="text-sm font-medium text-gray-600">Today's Habits</p>
+              <p className="text-2xl font-bold text-gray-900">{completedHabitsToday}/{totalHabits}</p>
             </div>
           </div>
         </div>
@@ -239,8 +246,8 @@ export function Dashboard() {
               <TrendingUp className="w-6 h-6 text-purple-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Today's Progress</p>
-              <p className="text-2xl font-bold text-gray-900">{completionRate}%</p>
+              <p className="text-sm font-medium text-gray-600">Overall Progress</p>
+              <p className="text-2xl font-bold text-gray-900">{overallProgress}%</p>
             </div>
           </div>
         </div>
@@ -292,6 +299,8 @@ export function Dashboard() {
                 key={goal.id}
                 goal={goal}
                 milestones={getMilestonesForGoal(goal.id)}
+                habits={getHabitsForGoal(goal.id)}
+                realTimeProgress={getGoalProgress(goal.id)}
                 onEdit={openGoalModal}
                 onDelete={handleDeleteGoal}
                 onAddMilestone={(goalId) => openMilestoneModal(null, goalId)}

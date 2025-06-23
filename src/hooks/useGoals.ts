@@ -24,6 +24,109 @@ export function useGoals() {
     }
   }, [user]);
 
+  // Calculate goal progress based on habits and milestones
+  const calculateGoalProgress = (goalId: string) => {
+    const goalHabits = habits.filter(habit => habit.goal_id === goalId);
+    const goalMilestones = milestones.filter(milestone => milestone.goal_id === goalId);
+    
+    // If no habits or milestones, return 0
+    if (goalHabits.length === 0 && goalMilestones.length === 0) {
+      return 0;
+    }
+
+    let totalWeight = 0;
+    let completedWeight = 0;
+
+    // Weight system: Milestones = 60%, Habits = 40%
+    const milestoneWeight = 0.6;
+    const habitWeight = 0.4;
+
+    // Calculate milestone progress
+    if (goalMilestones.length > 0) {
+      const completedMilestones = goalMilestones.filter(m => m.is_completed).length;
+      const milestoneProgress = (completedMilestones / goalMilestones.length) * milestoneWeight;
+      completedWeight += milestoneProgress;
+      totalWeight += milestoneWeight;
+    }
+
+    // Calculate habit progress (based on recent completions)
+    if (goalHabits.length > 0) {
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      
+      let habitProgressSum = 0;
+      
+      goalHabits.forEach(habit => {
+        // Get completions for this habit in the last 30 days
+        const recentCompletions = habitCompletions.filter(completion => {
+          const completionDate = new Date(completion.completed_at);
+          return completion.habit_id === habit.id && 
+                 completionDate >= thirtyDaysAgo && 
+                 completionDate <= now;
+        });
+
+        // Calculate expected completions based on frequency
+        let expectedCompletions = 0;
+        switch (habit.frequency) {
+          case 'daily':
+            expectedCompletions = 30 * habit.frequency_value;
+            break;
+          case 'weekly':
+            expectedCompletions = Math.floor(30 / 7) * habit.frequency_value;
+            break;
+          case 'monthly':
+            expectedCompletions = habit.frequency_value;
+            break;
+          case 'custom':
+            expectedCompletions = Math.floor(30 / habit.frequency_value);
+            break;
+        }
+
+        // Calculate completion rate for this habit (capped at 100%)
+        const completionRate = expectedCompletions > 0 
+          ? Math.min(recentCompletions.length / expectedCompletions, 1) 
+          : 0;
+        
+        habitProgressSum += completionRate;
+      });
+
+      const averageHabitProgress = habitProgressSum / goalHabits.length;
+      completedWeight += averageHabitProgress * habitWeight;
+      totalWeight += habitWeight;
+    }
+
+    // Return progress as percentage (0-100)
+    return totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0;
+  };
+
+  // Update goal progress automatically
+  const updateGoalProgress = async (goalId: string) => {
+    const newProgress = calculateGoalProgress(goalId);
+    
+    // Only update if progress has changed
+    const currentGoal = goals.find(g => g.id === goalId);
+    if (currentGoal && currentGoal.progress !== newProgress) {
+      await supabase
+        .from('goals')
+        .update({ progress: newProgress })
+        .eq('id', goalId);
+      
+      // Update local state
+      setGoals(prevGoals => 
+        prevGoals.map(goal => 
+          goal.id === goalId ? { ...goal, progress: newProgress } : goal
+        )
+      );
+    }
+  };
+
+  // Update all goal progress
+  const updateAllGoalProgress = async () => {
+    for (const goal of goals) {
+      await updateGoalProgress(goal.id);
+    }
+  };
+
   const fetchGoals = async () => {
     if (!user) return;
 
@@ -155,6 +258,8 @@ export function useGoals() {
     }
 
     await fetchHabits();
+    // Update goal progress after adding habit
+    await updateGoalProgress(habitData.goal_id);
     return data;
   };
 
@@ -172,10 +277,17 @@ export function useGoals() {
     }
 
     await fetchHabits();
+    // Update goal progress after updating habit
+    if (data) {
+      await updateGoalProgress(data.goal_id);
+    }
     return data;
   };
 
   const deleteHabit = async (id: string) => {
+    // Get the habit to know which goal to update
+    const habit = habits.find(h => h.id === id);
+    
     const { error } = await supabase
       .from('habits')
       .delete()
@@ -187,6 +299,12 @@ export function useGoals() {
     }
 
     await fetchHabits();
+    await fetchHabitCompletions();
+    
+    // Update goal progress after deleting habit
+    if (habit) {
+      await updateGoalProgress(habit.goal_id);
+    }
     return true;
   };
 
@@ -205,6 +323,8 @@ export function useGoals() {
     }
 
     await fetchMilestones();
+    // Update goal progress after adding milestone
+    await updateGoalProgress(milestoneData.goal_id);
     return data;
   };
 
@@ -222,10 +342,17 @@ export function useGoals() {
     }
 
     await fetchMilestones();
+    // Update goal progress after updating milestone
+    if (data) {
+      await updateGoalProgress(data.goal_id);
+    }
     return data;
   };
 
   const deleteMilestone = async (id: string) => {
+    // Get the milestone to know which goal to update
+    const milestone = milestones.find(m => m.id === id);
+    
     const { error } = await supabase
       .from('milestones')
       .delete()
@@ -237,6 +364,11 @@ export function useGoals() {
     }
 
     await fetchMilestones();
+    
+    // Update goal progress after deleting milestone
+    if (milestone) {
+      await updateGoalProgress(milestone.goal_id);
+    }
     return true;
   };
 
@@ -280,6 +412,13 @@ export function useGoals() {
     }
 
     await fetchHabitCompletions();
+    
+    // Update goal progress after habit completion change
+    const habit = habits.find(h => h.id === habitId);
+    if (habit) {
+      await updateGoalProgress(habit.goal_id);
+    }
+    
     return true;
   };
 
@@ -328,6 +467,22 @@ export function useGoals() {
     return milestones.filter(milestone => milestone.goal_id === goalId);
   };
 
+  const getHabitsForGoal = (goalId: string) => {
+    return habits.filter(habit => habit.goal_id === goalId);
+  };
+
+  // Get goal progress with real-time calculation
+  const getGoalProgress = (goalId: string) => {
+    return calculateGoalProgress(goalId);
+  };
+
+  // Update progress for all goals when data changes
+  useEffect(() => {
+    if (goals.length > 0 && habits.length >= 0 && milestones.length >= 0) {
+      updateAllGoalProgress();
+    }
+  }, [habitCompletions, milestones]);
+
   return {
     goals,
     habits,
@@ -348,6 +503,10 @@ export function useGoals() {
     reorderHabits,
     reorderMilestones,
     getMilestonesForGoal,
+    getHabitsForGoal,
+    getGoalProgress,
+    calculateGoalProgress,
+    updateGoalProgress,
     refetch: () => {
       fetchGoals();
       fetchHabits();
