@@ -30,7 +30,16 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
   ] as const;
 
   return (
-    <div className={`min-h-screen bg-gray-50 ${darkMode ? 'dark' : ''}`}>
+    <div className={`min-h-screen bg-gray-50 ${darkMode ? 'dark' : ''} relative`}>
+      {/* Badge - Fixed position in top-right corner */}
+      <div className="fixed top-4 right-4 z-50">
+        <img 
+          src="/black_circle_360x360.png" 
+          alt="Badge" 
+          className="w-12 h-12 rounded-full shadow-lg hover:shadow-xl transition-shadow duration-200 cursor-pointer"
+        />
+      </div>
+
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -139,7 +148,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
           </div>
         </header>
 
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 pr-20">
           {children}
         </main>
       </div>

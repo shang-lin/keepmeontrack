@@ -44,7 +44,16 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-emerald-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-emerald-50 flex items-center justify-center p-4 relative">
+      {/* Badge - Fixed position in top-right corner */}
+      <div className="fixed top-4 right-4 z-50">
+        <img 
+          src="/black_circle_360x360.png" 
+          alt="Badge" 
+          className="w-12 h-12 rounded-full shadow-lg hover:shadow-xl transition-shadow duration-200 cursor-pointer"
+        />
+      </div>
+
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
           <div className="text-center mb-8">
