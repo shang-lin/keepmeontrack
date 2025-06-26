@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MoreHorizontal, Edit, Trash2, Target, Calendar, CheckCircle, Plus, Flag, TrendingUp } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Target, Calendar, CheckCircle, Plus, Flag, TrendingUp, Check } from 'lucide-react';
 import { Database } from '../lib/supabase';
 import { format } from 'date-fns';
 import { MilestoneCard } from './MilestoneCard';
@@ -15,6 +15,7 @@ interface GoalCardProps {
   realTimeProgress: number;
   onEdit: (goal: Goal) => void;
   onDelete: (id: string) => void;
+  onMarkComplete: (id: string) => void;
   onAddMilestone: (goalId: string) => void;
   onEditMilestone: (milestone: Milestone) => void;
   onDeleteMilestone: (id: string) => void;
@@ -27,7 +28,8 @@ export function GoalCard({
   habits,
   realTimeProgress,
   onEdit, 
-  onDelete, 
+  onDelete,
+  onMarkComplete,
   onAddMilestone,
   onEditMilestone,
   onDeleteMilestone,
@@ -74,6 +76,8 @@ export function GoalCard({
     return 'bg-red-500';
   };
 
+  const isGoalActive = goal.status === 'active';
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
       <div className="flex items-start justify-between mb-4">
@@ -89,38 +93,64 @@ export function GoalCard({
           </div>
         </div>
         
-        <div className="relative">
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <MoreHorizontal className="w-5 h-5" />
-          </button>
-          
-          {showMenu && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-              <button
-                onClick={() => {
-                  onEdit(goal);
-                  setShowMenu(false);
-                }}
-                className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              >
-                <Edit className="w-4 h-4 mr-3" />
-                Edit Goal
-              </button>
-              <button
-                onClick={() => {
-                  onDelete(goal.id);
-                  setShowMenu(false);
-                }}
-                className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="w-4 h-4 mr-3" />
-                Delete Goal
-              </button>
-            </div>
+        <div className="flex items-center space-x-2">
+          {/* Manual Complete Button - Only show for active goals */}
+          {isGoalActive && (
+            <button
+              onClick={() => onMarkComplete(goal.id)}
+              className="px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors flex items-center"
+              title="Mark goal as complete"
+            >
+              <Check className="w-4 h-4 mr-1" />
+              Complete
+            </button>
           )}
+          
+          <div className="relative">
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <MoreHorizontal className="w-5 h-5" />
+            </button>
+            
+            {showMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                <button
+                  onClick={() => {
+                    onEdit(goal);
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  <Edit className="w-4 h-4 mr-3" />
+                  Edit Goal
+                </button>
+                {isGoalActive && (
+                  <button
+                    onClick={() => {
+                      onMarkComplete(goal.id);
+                      setShowMenu(false);
+                    }}
+                    className="w-full flex items-center px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-3" />
+                    Mark as Complete
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    onDelete(goal.id);
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="w-4 h-4 mr-3" />
+                  Delete Goal
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -172,13 +202,15 @@ export function GoalCard({
             </span>
           </div>
           <div className="flex items-center space-x-2">
-            <button
-              onClick={() => onAddMilestone(goal.id)}
-              className="text-indigo-600 hover:text-indigo-700 p-1 rounded-full hover:bg-indigo-50 transition-colors"
-              title="Add milestone"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
+            {isGoalActive && (
+              <button
+                onClick={() => onAddMilestone(goal.id)}
+                className="text-indigo-600 hover:text-indigo-700 p-1 rounded-full hover:bg-indigo-50 transition-colors"
+                title="Add milestone"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            )}
             {totalMilestones > 0 && (
               <button
                 onClick={() => setShowMilestones(!showMilestones)}
@@ -193,12 +225,14 @@ export function GoalCard({
         {totalMilestones === 0 ? (
           <div className="text-center py-4">
             <p className="text-sm text-gray-500">No milestones yet</p>
-            <button
-              onClick={() => onAddMilestone(goal.id)}
-              className="text-indigo-600 hover:text-indigo-700 text-sm font-medium mt-1 transition-colors"
-            >
-              Add your first milestone
-            </button>
+            {isGoalActive && (
+              <button
+                onClick={() => onAddMilestone(goal.id)}
+                className="text-indigo-600 hover:text-indigo-700 text-sm font-medium mt-1 transition-colors"
+              >
+                Add your first milestone
+              </button>
+            )}
           </div>
         ) : (
           <>

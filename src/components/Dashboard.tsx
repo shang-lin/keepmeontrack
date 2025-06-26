@@ -66,6 +66,18 @@ export function Dashboard() {
     }
   };
 
+  const handleMarkGoalComplete = async (id) => {
+    const result = await updateGoal(id, { 
+      status: 'completed',
+      progress: 100 
+    });
+    if (result) {
+      toast.success('🎉 Goal marked as complete! Congratulations!');
+    } else {
+      toast.error('Failed to mark goal as complete');
+    }
+  };
+
   const handleCreateHabit = async (habitData) => {
     const result = await createHabit(habitData);
     if (result) {
@@ -303,6 +315,7 @@ export function Dashboard() {
                 realTimeProgress={getGoalProgress(goal.id)}
                 onEdit={openGoalModal}
                 onDelete={handleDeleteGoal}
+                onMarkComplete={handleMarkGoalComplete}
                 onAddMilestone={(goalId) => openMilestoneModal(null, goalId)}
                 onEditMilestone={(milestone) => openMilestoneModal(milestone, milestone.goal_id)}
                 onDeleteMilestone={handleDeleteMilestone}
