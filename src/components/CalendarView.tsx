@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, addMonths, subMonths, parseISO, startOfDay, isValid, isBefore, isAfter } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, addMonths, subMonths, parseISO, startOfDay, isValid } from 'date-fns';
 import { useGoals } from '../hooks/useGoals';
 import { HabitModal } from './HabitModal';
 
 export function CalendarView() {
-  const { goals, habits, toggleHabitCompletion, isHabitCompletedOnDate } = useGoals();
+  const { goals, habits, milestones, toggleHabitCompletion, isHabitCompletedOnDate } = useGoals();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [habitModalOpen, setHabitModalOpen] = useState(false);
@@ -40,11 +40,12 @@ export function CalendarView() {
     }
   };
 
-  const habitsForDate = useMemo(() => {
+  // Get habits for a specific date - now includes past dates
+  const getHabitsForDate = (date: Date) => {
     return habits.filter(habit => {
       if (!habit.due_date) {
-        // If no due date, show habit every day based on frequency
-        return shouldShowHabitOnDate(habit, selectedDate);
+        // If no due date, show habit based on frequency for all dates
+        return shouldShowHabitOnDate(habit, date);
       }
       
       try {
@@ -60,28 +61,68 @@ export function CalendarView() {
           habitDueDate = startOfDay(new Date(habit.due_date));
         }
         
-        const compareDate = startOfDay(selectedDate);
-        const today = startOfDay(new Date());
+        const compareDate = startOfDay(date);
         
         if (!isValid(habitDueDate)) {
           return false;
         }
         
         // Show habit if:
-        // 1. Selected date is today or after today (not in the past)
-        // 2. Selected date is on or before the due date
-        // 3. The habit should appear on this date based on frequency
-        const isNotInPast = !isBefore(compareDate, today);
-        const isBeforeDueDate = !isAfter(compareDate, habitDueDate);
-        const shouldShowToday = shouldShowHabitOnDate(habit, selectedDate);
+        // 1. The selected date is on or before the due date
+        // 2. The habit should appear on this date based on frequency
+        const isBeforeDueDate = compareDate <= habitDueDate;
+        const shouldShowToday = shouldShowHabitOnDate(habit, date);
         
-        return isNotInPast && isBeforeDueDate && shouldShowToday;
+        return isBeforeDueDate && shouldShowToday;
       } catch (error) {
         console.error('Error parsing date for habit:', habit.title, error);
         return false;
       }
     });
+  };
+
+  // Get milestones for a specific date - now includes past dates
+  const getMilestonesForDate = (date: Date) => {
+    return milestones.filter(milestone => {
+      if (!milestone.target_date) {
+        return false; // Don't show milestones without target dates on calendar
+      }
+      
+      try {
+        // Parse the target date
+        let milestoneTargetDate;
+        if (typeof milestone.target_date === 'string') {
+          if (milestone.target_date.includes('T')) {
+            milestoneTargetDate = startOfDay(parseISO(milestone.target_date));
+          } else {
+            milestoneTargetDate = startOfDay(new Date(milestone.target_date + 'T00:00:00'));
+          }
+        } else {
+          milestoneTargetDate = startOfDay(new Date(milestone.target_date));
+        }
+        
+        const compareDate = startOfDay(date);
+        
+        if (!isValid(milestoneTargetDate)) {
+          return false;
+        }
+        
+        // Show milestone if the date matches the target date
+        return compareDate.getTime() === milestoneTargetDate.getTime();
+      } catch (error) {
+        console.error('Error parsing date for milestone:', milestone.title, error);
+        return false;
+      }
+    });
+  };
+
+  const habitsForDate = useMemo(() => {
+    return getHabitsForDate(selectedDate);
   }, [habits, selectedDate]);
+
+  const milestonesForDate = useMemo(() => {
+    return getMilestonesForDate(selectedDate);
+  }, [milestones, selectedDate]);
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     if (direction === 'prev') {
@@ -109,46 +150,9 @@ export function CalendarView() {
     await toggleHabitCompletion(habitId, date);
   };
 
-  const getHabitsForDay = (date: Date) => {
-    return habits.filter(habit => {
-      if (!habit.due_date) {
-        return shouldShowHabitOnDate(habit, date);
-      }
-      
-      try {
-        // Parse the due date
-        let habitDueDate;
-        if (typeof habit.due_date === 'string') {
-          if (habit.due_date.includes('T')) {
-            habitDueDate = startOfDay(parseISO(habit.due_date));
-          } else {
-            habitDueDate = startOfDay(new Date(habit.due_date + 'T00:00:00'));
-          }
-        } else {
-          habitDueDate = startOfDay(new Date(habit.due_date));
-        }
-        
-        const compareDate = startOfDay(date);
-        const today = startOfDay(new Date());
-        
-        if (!isValid(habitDueDate)) {
-          return false;
-        }
-        
-        // Show habit if:
-        // 1. Date is today or after today (not in the past)
-        // 2. Date is on or before the due date
-        // 3. The habit should appear on this date based on frequency
-        const isNotInPast = !isBefore(compareDate, today);
-        const isBeforeDueDate = !isAfter(compareDate, habitDueDate);
-        const shouldShowToday = shouldShowHabitOnDate(habit, date);
-        
-        return isNotInPast && isBeforeDueDate && shouldShowToday;
-      } catch (error) {
-        console.error('Error parsing date for habit:', habit.title, error);
-        return false;
-      }
-    });
+  const handleToggleMilestoneComplete = async (milestoneId: string, completed: boolean) => {
+    // This would need to be implemented in useGoals hook
+    console.log('Toggle milestone completion:', milestoneId, completed);
   };
 
   return (
@@ -157,7 +161,7 @@ export function CalendarView() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Calendar</h1>
-          <p className="text-gray-600 mt-1">View and manage your habits by date</p>
+          <p className="text-gray-600 mt-1">View and manage your habits and milestones by date</p>
         </div>
         <button
           onClick={handleCreateHabit}
@@ -209,7 +213,9 @@ export function CalendarView() {
 
           <div className="grid grid-cols-7 gap-1">
             {calendarDays.map((day) => {
-              const dayHabits = getHabitsForDay(day);
+              const dayHabits = getHabitsForDate(day);
+              const dayMilestones = getMilestonesForDate(day);
+              const totalItems = dayHabits.length + dayMilestones.length;
               const isSelected = isSameDay(day, selectedDate);
               const isCurrentDay = isToday(day);
               const isCurrentMonth = isSameMonth(day, currentDate);
@@ -229,16 +235,22 @@ export function CalendarView() {
                   }`}
                 >
                   <span className="block">{format(day, 'd')}</span>
-                  {dayHabits.length > 0 && (
+                  {totalItems > 0 && (
                     <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex space-x-1">
-                      {dayHabits.slice(0, 3).map((_, index) => (
-                        <div key={index} className={`w-1.5 h-1.5 rounded-full ${
-                          isSelected ? 'bg-white' : 'bg-indigo-600'
+                      {/* Show different colored dots for habits vs milestones */}
+                      {dayHabits.length > 0 && (
+                        <div className={`w-1.5 h-1.5 rounded-full ${
+                          isSelected ? 'bg-white' : 'bg-emerald-600'
                         }`}></div>
-                      ))}
-                      {dayHabits.length > 3 && (
+                      )}
+                      {dayMilestones.length > 0 && (
+                        <div className={`w-1.5 h-1.5 rounded-full ${
+                          isSelected ? 'bg-white' : 'bg-purple-600'
+                        }`}></div>
+                      )}
+                      {totalItems > 2 && (
                         <div className={`text-xs ${isSelected ? 'text-white' : 'text-indigo-600'}`}>
-                          +{dayHabits.length - 3}
+                          +{totalItems - 2}
                         </div>
                       )}
                     </div>
@@ -259,71 +271,131 @@ export function CalendarView() {
               </h3>
             </div>
 
-            {habitsForDate.length === 0 ? (
+            {habitsForDate.length === 0 && milestonesForDate.length === 0 ? (
               <div className="text-center py-8">
                 <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-3">
                   <CalendarIcon className="w-6 h-6 text-gray-400" />
                 </div>
-                <p className="text-gray-500 text-sm">No habits scheduled for this date</p>
+                <p className="text-gray-500 text-sm">No habits or milestones for this date</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {habitsForDate.map((habit) => {
-                  const isCompleted = isHabitCompletedOnDate(habit.id, selectedDate);
-                  
-                  return (
-                    <div
-                      key={habit.id}
-                      className={`p-4 border rounded-lg transition-colors ${
-                        isCompleted
-                          ? 'border-emerald-200 bg-emerald-50'
-                          : 'border-gray-200 bg-white hover:border-indigo-300'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className={`font-medium ${
-                            isCompleted ? 'text-emerald-900 line-through' : 'text-gray-900'
-                          }`}>
-                            {habit.title}
-                          </h4>
-                          {habit.description && (
-                            <p className={`text-sm mt-1 ${
-                              isCompleted ? 'text-emerald-700' : 'text-gray-600'
-                            }`}>
-                              {habit.description}
-                            </p>
-                          )}
-                          {habit.due_date && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              Due: {format(new Date(habit.due_date), 'MMM dd, yyyy')}
-                            </p>
-                          )}
+              <div className="space-y-4">
+                {/* Milestones Section */}
+                {milestonesForDate.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-purple-900 mb-3 flex items-center">
+                      <div className="w-2 h-2 bg-purple-600 rounded-full mr-2"></div>
+                      Milestones ({milestonesForDate.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {milestonesForDate.map((milestone) => (
+                        <div
+                          key={milestone.id}
+                          className={`p-3 border rounded-lg transition-colors ${
+                            milestone.is_completed
+                              ? 'border-purple-200 bg-purple-50'
+                              : 'border-gray-200 bg-white hover:border-purple-300'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h5 className={`font-medium text-sm ${
+                                milestone.is_completed ? 'text-purple-900 line-through' : 'text-gray-900'
+                              }`}>
+                                {milestone.title}
+                              </h5>
+                              {milestone.description && (
+                                <p className={`text-xs mt-1 ${
+                                  milestone.is_completed ? 'text-purple-700' : 'text-gray-600'
+                                }`}>
+                                  {milestone.description}
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => handleToggleMilestoneComplete(milestone.id, !milestone.is_completed)}
+                              className={`px-2 py-1 text-xs font-medium rounded-full transition-colors ${
+                                milestone.is_completed
+                                  ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                            >
+                              {milestone.is_completed ? 'Completed' : 'Mark Done'}
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => handleToggleHabitComplete(habit.id, selectedDate)}
-                            className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Habits Section */}
+                {habitsForDate.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-emerald-900 mb-3 flex items-center">
+                      <div className="w-2 h-2 bg-emerald-600 rounded-full mr-2"></div>
+                      Habits ({habitsForDate.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {habitsForDate.map((habit) => {
+                        const isCompleted = isHabitCompletedOnDate(habit.id, selectedDate);
+                        
+                        return (
+                          <div
+                            key={habit.id}
+                            className={`p-3 border rounded-lg transition-colors ${
                               isCompleted
-                                ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'border-emerald-200 bg-emerald-50'
+                                : 'border-gray-200 bg-white hover:border-emerald-300'
                             }`}
                           >
-                            {isCompleted ? 'Completed' : 'Mark Done'}
-                          </button>
-                          <button
-                            onClick={() => handleEditHabit(habit)}
-                            className="text-gray-400 hover:text-gray-600 transition-colors"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h5 className={`font-medium text-sm ${
+                                  isCompleted ? 'text-emerald-900 line-through' : 'text-gray-900'
+                                }`}>
+                                  {habit.title}
+                                </h5>
+                                {habit.description && (
+                                  <p className={`text-xs mt-1 ${
+                                    isCompleted ? 'text-emerald-700' : 'text-gray-600'
+                                  }`}>
+                                    {habit.description}
+                                  </p>
+                                )}
+                                {habit.due_date && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Due: {format(new Date(habit.due_date), 'MMM dd, yyyy')}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() => handleToggleHabitComplete(habit.id, selectedDate)}
+                                  className={`px-2 py-1 text-xs font-medium rounded-full transition-colors ${
+                                    isCompleted
+                                      ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                  }`}
+                                >
+                                  {isCompleted ? 'Completed' : 'Mark Done'}
+                                </button>
+                                <button
+                                  onClick={() => handleEditHabit(habit)}
+                                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  </div>
+                )}
               </div>
             )}
           </div>
