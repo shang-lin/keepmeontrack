@@ -309,23 +309,34 @@ export function Dashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {goals.map((goal) => (
-              <GoalCard
-                key={goal.id}
-                goal={goal}
-                milestones={getMilestonesForGoal(goal.id)}
-                habits={getHabitsForGoal(goal.id)}
-                realTimeProgress={getGoalProgress(goal.id)}
-                onEdit={openGoalModal}
-                onDelete={handleDeleteGoal}
-                onMarkComplete={handleMarkGoalComplete}
-                onAddMilestone={(goalId) => openMilestoneModal(null, goalId)}
-                onAddHabit={(goalId) => openHabitModal(null, goalId)}
-                onEditMilestone={(milestone) => openMilestoneModal(milestone, milestone.goal_id)}
-                onDeleteMilestone={handleDeleteMilestone}
-                onToggleMilestoneComplete={handleToggleMilestoneComplete}
-              />
-            ))}
+            {goals.map((goal) => {
+              const goalHabits = getHabitsForGoal(goal.id);
+              const goalHabitsWithCompletion = goalHabits.map(habit => ({
+                ...habit,
+                is_completed: isHabitCompletedOnDate(habit.id, today)
+              }));
+
+              return (
+                <GoalCard
+                  key={goal.id}
+                  goal={goal}
+                  milestones={getMilestonesForGoal(goal.id)}
+                  habits={goalHabitsWithCompletion}
+                  realTimeProgress={getGoalProgress(goal.id)}
+                  onEdit={openGoalModal}
+                  onDelete={handleDeleteGoal}
+                  onMarkComplete={handleMarkGoalComplete}
+                  onAddMilestone={(goalId) => openMilestoneModal(null, goalId)}
+                  onAddHabit={(goalId) => openHabitModal(null, goalId)}
+                  onEditMilestone={(milestone) => openMilestoneModal(milestone, milestone.goal_id)}
+                  onDeleteMilestone={handleDeleteMilestone}
+                  onToggleMilestoneComplete={handleToggleMilestoneComplete}
+                  onEditHabit={(habit) => openHabitModal(habit)}
+                  onDeleteHabit={handleDeleteHabit}
+                  onToggleHabitComplete={handleToggleHabitComplete}
+                />
+              );
+            })}
           </div>
         )}
       </div>

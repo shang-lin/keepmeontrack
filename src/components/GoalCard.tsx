@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MoreHorizontal, Edit, Trash2, Target, Calendar, CheckCircle, Plus, Flag, TrendingUp, Check, Play, UserPlus } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Target, Calendar, CheckCircle, Plus, Flag, TrendingUp, Check, Play, Clock } from 'lucide-react';
 import { Database } from '../lib/supabase';
 import { format, parseISO } from 'date-fns';
 import { MilestoneCard } from './MilestoneCard';
@@ -21,6 +21,9 @@ interface GoalCardProps {
   onEditMilestone: (milestone: Milestone) => void;
   onDeleteMilestone: (id: string) => void;
   onToggleMilestoneComplete: (id: string, completed: boolean) => void;
+  onEditHabit: (habit: Habit) => void;
+  onDeleteHabit: (id: string) => void;
+  onToggleHabitComplete: (id: string, completed: boolean) => void;
 }
 
 export function GoalCard({ 
@@ -35,10 +38,14 @@ export function GoalCard({
   onAddHabit,
   onEditMilestone,
   onDeleteMilestone,
-  onToggleMilestoneComplete
+  onToggleMilestoneComplete,
+  onEditHabit,
+  onDeleteHabit,
+  onToggleHabitComplete
 }: GoalCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showMilestones, setShowMilestones] = useState(false);
+  const [showHabits, setShowHabits] = useState(false);
 
   const getStatusColor = (status: Goal['status']) => {
     switch (status) {
@@ -59,6 +66,19 @@ export function GoalCard({
         return Calendar;
       default:
         return Target;
+    }
+  };
+
+  const getFrequencyText = (frequency: Habit['frequency'], value: number) => {
+    switch (frequency) {
+      case 'daily':
+        return 'Daily';
+      case 'weekly':
+        return value === 1 ? 'Weekly' : `${value}x per week`;
+      case 'monthly':
+        return value === 1 ? 'Monthly' : `${value}x per month`;
+      default:
+        return `Every ${value} days`;
     }
   };
 
@@ -114,23 +134,11 @@ export function GoalCard({
         </div>
         
         <div className="flex items-center space-x-2">
-          {/* Add Habit Button - Only show for active goals */}
-          {isGoalActive && (
-            <button
-              onClick={() => onAddHabit(goal.id)}
-              className="px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors flex items-center"
-              title="Add habit to this goal"
-            >
-              <UserPlus className="w-4 h-4 mr-1" />
-              Add Habit
-            </button>
-          )}
-
           {/* Manual Complete Button - Only show for active goals */}
           {isGoalActive && (
             <button
               onClick={() => onMarkComplete(goal.id)}
-              className="px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors flex items-center"
+              className="px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors flex items-center"
               title="Mark goal as complete"
             >
               <Check className="w-4 h-4 mr-1" />
@@ -159,28 +167,16 @@ export function GoalCard({
                   Edit Goal
                 </button>
                 {isGoalActive && (
-                  <>
-                    <button
-                      onClick={() => {
-                        onAddHabit(goal.id);
-                        setShowMenu(false);
-                      }}
-                      className="w-full flex items-center px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50"
-                    >
-                      <UserPlus className="w-4 h-4 mr-3" />
-                      Add Habit
-                    </button>
-                    <button
-                      onClick={() => {
-                        onMarkComplete(goal.id);
-                        setShowMenu(false);
-                      }}
-                      className="w-full flex items-center px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-3" />
-                      Mark as Complete
-                    </button>
-                  </>
+                  <button
+                    onClick={() => {
+                      onMarkComplete(goal.id);
+                      setShowMenu(false);
+                    }}
+                    className="w-full flex items-center px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-3" />
+                    Mark as Complete
+                  </button>
                 )}
                 <button
                   onClick={() => {
@@ -256,7 +252,7 @@ export function GoalCard({
       </div>
 
       {/* Milestones Section */}
-      <div className="border-t border-gray-200 pt-4">
+      <div className="border-t border-gray-200 pt-4 mb-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center">
             <Flag className="w-4 h-4 text-gray-500 mr-2" />
@@ -319,6 +315,136 @@ export function GoalCard({
                     onDelete={onDeleteMilestone}
                     onToggleComplete={onToggleMilestoneComplete}
                   />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Habits Section */}
+      <div className="border-t border-gray-200 pt-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center">
+            <Target className="w-4 h-4 text-gray-500 mr-2" />
+            <span className="text-sm font-medium text-gray-700">
+              Habits ({totalHabits})
+            </span>
+          </div>
+          <div className="flex items-center space-x-2">
+            {isGoalActive && (
+              <button
+                onClick={() => onAddHabit(goal.id)}
+                className="text-emerald-600 hover:text-emerald-700 p-1 rounded-full hover:bg-emerald-50 transition-colors"
+                title="Add habit"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            )}
+            {totalHabits > 0 && (
+              <button
+                onClick={() => setShowHabits(!showHabits)}
+                className="text-gray-500 hover:text-gray-700 text-xs font-medium transition-colors"
+              >
+                {showHabits ? 'Hide' : 'Show'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {totalHabits === 0 ? (
+          <div className="text-center py-4">
+            <p className="text-sm text-gray-500">No habits yet</p>
+            {isGoalActive && (
+              <button
+                onClick={() => onAddHabit(goal.id)}
+                className="text-emerald-600 hover:text-emerald-700 text-sm font-medium mt-1 transition-colors"
+              >
+                Add your first habit
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Habit Progress Indicator */}
+            <div className="mb-3">
+              <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                <span>Today's completion</span>
+                <span>{habits.filter(h => h.is_completed).length}/{totalHabits}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-1.5">
+                <div
+                  className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
+                  style={{ width: `${totalHabits > 0 ? (habits.filter(h => h.is_completed).length / totalHabits) * 100 : 0}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {showHabits && (
+              <div className="space-y-2">
+                {habits.map((habit) => (
+                  <div
+                    key={habit.id}
+                    className={`bg-gray-50 rounded-lg p-3 border transition-colors ${
+                      habit.is_completed ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start flex-1">
+                        <button
+                          onClick={() => onToggleHabitComplete(habit.id, !habit.is_completed)}
+                          className={`mt-0.5 mr-3 transition-colors ${
+                            habit.is_completed 
+                              ? 'text-emerald-600 hover:text-emerald-700' 
+                              : 'text-gray-400 hover:text-gray-600'
+                          }`}
+                        >
+                          {habit.is_completed ? (
+                            <CheckCircle className="w-4 h-4" />
+                          ) : (
+                            <div className="w-4 h-4 border-2 border-current rounded-full"></div>
+                          )}
+                        </button>
+                        
+                        <div className="flex-1">
+                          <h5 className={`font-medium text-sm ${
+                            habit.is_completed ? 'text-emerald-900 line-through' : 'text-gray-900'
+                          }`}>
+                            {habit.title}
+                          </h5>
+                          <div className="flex items-center space-x-3 mt-1 text-xs text-gray-500">
+                            <div className="flex items-center">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {getFrequencyText(habit.frequency, habit.frequency_value)}
+                            </div>
+                            {habit.due_date && (
+                              <div className="flex items-center">
+                                <Calendar className="w-3 h-3 mr-1" />
+                                Due: {formatDate(habit.due_date)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={() => onEditHabit(habit)}
+                          className="text-gray-400 hover:text-gray-600 p-1 rounded transition-colors"
+                          title="Edit habit"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => onDeleteHabit(habit.id)}
+                          className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors"
+                          title="Delete habit"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
