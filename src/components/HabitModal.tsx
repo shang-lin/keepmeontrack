@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Target, Calendar, FileText, Clock } from 'lucide-react';
+import { X, Target, Calendar, FileText, Clock, Play } from 'lucide-react';
 import { Database } from '../lib/supabase';
 
 type Habit = Database['public']['Tables']['habits']['Row'];
@@ -19,6 +19,7 @@ export function HabitModal({ isOpen, onClose, onSave, habit, goals }: HabitModal
   const [goalId, setGoalId] = useState('');
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly' | 'custom'>('daily');
   const [frequencyValue, setFrequencyValue] = useState(1);
+  const [startDate, setStartDate] = useState('');
   const [dueDate, setDueDate] = useState('');
 
   useEffect(() => {
@@ -28,16 +29,33 @@ export function HabitModal({ isOpen, onClose, onSave, habit, goals }: HabitModal
       setGoalId(habit.goal_id);
       setFrequency(habit.frequency);
       setFrequencyValue(habit.frequency_value);
+      setStartDate(habit.start_date ? habit.start_date.split('T')[0] : '');
       setDueDate(habit.due_date ? habit.due_date.split('T')[0] : '');
     } else {
       setTitle('');
       setDescription('');
-      setGoalId(goals[0]?.id || '');
+      const firstGoal = goals[0];
+      setGoalId(firstGoal?.id || '');
       setFrequency('daily');
       setFrequencyValue(1);
+      // Default to goal's start date if available, otherwise today
+      const defaultStartDate = firstGoal?.start_date 
+        ? firstGoal.start_date.split('T')[0] 
+        : new Date().toISOString().split('T')[0];
+      setStartDate(defaultStartDate);
       setDueDate('');
     }
   }, [habit, goals, isOpen]);
+
+  // Update start date when goal changes (for new habits)
+  useEffect(() => {
+    if (!habit && goalId) {
+      const selectedGoal = goals.find(g => g.id === goalId);
+      if (selectedGoal?.start_date) {
+        setStartDate(selectedGoal.start_date.split('T')[0]);
+      }
+    }
+  }, [goalId, goals, habit]);
 
   if (!isOpen) return null;
 
@@ -49,6 +67,7 @@ export function HabitModal({ isOpen, onClose, onSave, habit, goals }: HabitModal
       goal_id: goalId,
       frequency,
       frequency_value: frequencyValue,
+      start_date: startDate || null,
       due_date: dueDate || null,
       is_completed: habit?.is_completed || false,
       order_index: habit?.order_index || 0,
@@ -162,19 +181,37 @@ export function HabitModal({ isOpen, onClose, onSave, habit, goals }: HabitModal
             </div>
           </div>
 
-          <div>
-            <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-2">
-              Due Date (Optional)
-            </label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                id="dueDate"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
-              />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
+                Start Date
+              </label>
+              <div className="relative">
+                <Play className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-2">
+                Due Date (Optional)
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  id="dueDate"
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                />
+              </div>
             </div>
           </div>
 

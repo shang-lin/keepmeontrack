@@ -44,6 +44,7 @@ export type Database = {
           user_id: string;
           title: string;
           description: string | null;
+          start_date: string | null;
           target_date: string | null;
           status: 'active' | 'completed' | 'paused';
           progress: number;
@@ -55,6 +56,7 @@ export type Database = {
           user_id: string;
           title: string;
           description?: string | null;
+          start_date?: string | null;
           target_date?: string | null;
           status?: 'active' | 'completed' | 'paused';
           progress?: number;
@@ -66,6 +68,7 @@ export type Database = {
           user_id?: string;
           title?: string;
           description?: string | null;
+          start_date?: string | null;
           target_date?: string | null;
           status?: 'active' | 'completed' | 'paused';
           progress?: number;
@@ -82,6 +85,7 @@ export type Database = {
           description: string | null;
           frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
           frequency_value: number;
+          start_date: string | null;
           due_date: string | null;
           is_completed: boolean;
           order_index: number;
@@ -96,6 +100,7 @@ export type Database = {
           description?: string | null;
           frequency?: 'daily' | 'weekly' | 'monthly' | 'custom';
           frequency_value?: number;
+          start_date?: string | null;
           due_date?: string | null;
           is_completed?: boolean;
           order_index?: number;
@@ -110,6 +115,7 @@ export type Database = {
           description?: string | null;
           frequency?: 'daily' | 'weekly' | 'monthly' | 'custom';
           frequency_value?: number;
+          start_date?: string | null;
           due_date?: string | null;
           is_completed?: boolean;
           order_index?: number;

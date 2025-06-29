@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MoreHorizontal, Edit, Trash2, Clock, Calendar, CheckCircle2, Circle } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Clock, Calendar, CheckCircle2, Circle, Play } from 'lucide-react';
 import { Database } from '../lib/supabase';
 import { format } from 'date-fns';
 
@@ -100,12 +100,21 @@ export function HabitCard({ habit, onEdit, onDelete, onToggleComplete }: HabitCa
           {getFrequencyText(habit.frequency, habit.frequency_value)}
         </div>
         
-        {habit.due_date && (
-          <div className="flex items-center text-gray-500">
-            <Calendar className="w-4 h-4 mr-1" />
-            {format(new Date(habit.due_date), 'MMM dd')}
-          </div>
-        )}
+        <div className="flex items-center space-x-4 text-gray-500">
+          {habit.start_date && (
+            <div className="flex items-center">
+              <Play className="w-4 h-4 mr-1" />
+              {format(new Date(habit.start_date), 'MMM dd')}
+            </div>
+          )}
+          
+          {habit.due_date && (
+            <div className="flex items-center">
+              <Calendar className="w-4 h-4 mr-1" />
+              {format(new Date(habit.due_date), 'MMM dd')}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

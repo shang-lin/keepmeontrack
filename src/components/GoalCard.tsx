@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MoreHorizontal, Edit, Trash2, Target, Calendar, CheckCircle, Plus, Flag, TrendingUp, Check } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Target, Calendar, CheckCircle, Plus, Flag, TrendingUp, Check, Play } from 'lucide-react';
 import { Database } from '../lib/supabase';
 import { format } from 'date-fns';
 import { MilestoneCard } from './MilestoneCard';
@@ -182,14 +182,33 @@ export function GoalCard({
           </div>
         </div>
         
-        {goal.target_date && (
-          <div className="ml-6 text-right">
-            <p className="text-xs text-gray-500">Target Date</p>
-            <p className="text-sm font-medium text-gray-900">
-              {format(new Date(goal.target_date), 'MMM dd, yyyy')}
-            </p>
-          </div>
-        )}
+        <div className="ml-6 text-right">
+          {/* Start Date */}
+          {goal.start_date && (
+            <div className="mb-2">
+              <div className="flex items-center text-xs text-gray-500 mb-1">
+                <Play className="w-3 h-3 mr-1" />
+                <span>Started</span>
+              </div>
+              <p className="text-sm font-medium text-gray-900">
+                {format(new Date(goal.start_date), 'MMM dd, yyyy')}
+              </p>
+            </div>
+          )}
+          
+          {/* Target Date */}
+          {goal.target_date && (
+            <div>
+              <div className="flex items-center text-xs text-gray-500 mb-1">
+                <Calendar className="w-3 h-3 mr-1" />
+                <span>Target</span>
+              </div>
+              <p className="text-sm font-medium text-gray-900">
+                {format(new Date(goal.target_date), 'MMM dd, yyyy')}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Milestones Section */}
