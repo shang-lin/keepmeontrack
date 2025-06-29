@@ -277,10 +277,10 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* AI Milestone and Habit Generator for first active goal */}
-      {activeGoals.length > 0 && (
+      {/* AI Milestone and Habit Generator - now with goal selector */}
+      {goals.length > 0 && (
         <AIMilestoneHabitGenerator
-          goal={activeGoals[0]}
+          goals={goals}
           onItemsGenerated={() => {}}
           onAddHabit={handleCreateHabit}
           onAddMilestone={handleCreateMilestone}

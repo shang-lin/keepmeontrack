@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Plus, Clock, Target, Flag, Calendar } from 'lucide-react';
+import { Sparkles, Plus, Clock, Target, Flag, Calendar, ChevronDown } from 'lucide-react';
 import { generateHabitsAndMilestonesForGoal, AIHabit, AIMilestone } from '../services/aiService';
 import { Database } from '../lib/supabase';
 import { format, addDays } from 'date-fns';
@@ -7,27 +7,33 @@ import { format, addDays } from 'date-fns';
 type Goal = Database['public']['Tables']['goals']['Row'];
 
 interface AIMilestoneHabitGeneratorProps {
-  goal: Goal;
+  goals: Goal[];
   onItemsGenerated: (habits: AIHabit[], milestones: AIMilestone[]) => void;
   onAddHabit: (habitData: Omit<Database['public']['Tables']['habits']['Insert'], 'user_id'>) => void;
   onAddMilestone: (milestoneData: Omit<Database['public']['Tables']['milestones']['Insert'], 'user_id'>) => void;
 }
 
 export function AIMilestoneHabitGenerator({ 
-  goal, 
+  goals, 
   onItemsGenerated, 
   onAddHabit, 
   onAddMilestone 
 }: AIMilestoneHabitGeneratorProps) {
+  // Default to the most recently created goal (first in the array since they're sorted by created_at desc)
+  const [selectedGoalId, setSelectedGoalId] = useState(goals[0]?.id || '');
   const [generatedHabits, setGeneratedHabits] = useState<AIHabit[]>([]);
   const [generatedMilestones, setGeneratedMilestones] = useState<AIMilestone[]>([]);
   const [loading, setLoading] = useState(false);
   const [showItems, setShowItems] = useState(false);
 
+  const selectedGoal = goals.find(goal => goal.id === selectedGoalId);
+
   const handleGenerate = async () => {
+    if (!selectedGoal) return;
+    
     setLoading(true);
     try {
-      const breakdown = await generateHabitsAndMilestonesForGoal(goal.title, goal.description || undefined);
+      const breakdown = await generateHabitsAndMilestonesForGoal(selectedGoal.title, selectedGoal.description || undefined);
       setGeneratedHabits(breakdown.habits);
       setGeneratedMilestones(breakdown.milestones);
       setShowItems(true);
@@ -40,8 +46,10 @@ export function AIMilestoneHabitGenerator({
   };
 
   const handleAddHabit = (habit: AIHabit) => {
+    if (!selectedGoal) return;
+    
     onAddHabit({
-      goal_id: goal.id,
+      goal_id: selectedGoal.id,
       title: habit.title,
       description: habit.description,
       frequency: habit.frequency,
@@ -53,15 +61,17 @@ export function AIMilestoneHabitGenerator({
   };
 
   const handleAddMilestone = (milestone: AIMilestone) => {
+    if (!selectedGoal) return;
+    
     // Calculate target date based on goal start date and offset
     let targetDate = null;
-    if (goal.start_date) {
-      const startDate = new Date(goal.start_date);
+    if (selectedGoal.start_date) {
+      const startDate = new Date(selectedGoal.start_date);
       targetDate = format(addDays(startDate, milestone.target_date_offset), 'yyyy-MM-dd');
     }
 
     onAddMilestone({
-      goal_id: goal.id,
+      goal_id: selectedGoal.id,
       title: milestone.title,
       description: milestone.description,
       target_date: targetDate,
@@ -84,16 +94,32 @@ export function AIMilestoneHabitGenerator({
   };
 
   const getMilestoneTargetDate = (milestone: AIMilestone) => {
-    if (!goal.start_date) return 'No start date set';
+    if (!selectedGoal?.start_date) return 'No start date set';
     
     try {
-      const startDate = new Date(goal.start_date);
+      const startDate = new Date(selectedGoal.start_date);
       const targetDate = addDays(startDate, milestone.target_date_offset);
       return format(targetDate, 'MMM dd, yyyy');
     } catch (error) {
       return 'Invalid date';
     }
   };
+
+  const getGoalStatusColor = (status: Goal['status']) => {
+    switch (status) {
+      case 'completed':
+        return 'text-emerald-600';
+      case 'paused':
+        return 'text-amber-600';
+      default:
+        return 'text-indigo-600';
+    }
+  };
+
+  // Don't render if no goals available
+  if (goals.length === 0) {
+    return null;
+  }
 
   return (
     <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-200">
@@ -104,13 +130,13 @@ export function AIMilestoneHabitGenerator({
           </div>
           <div className="ml-3">
             <h3 className="text-lg font-semibold text-gray-900">AI Milestone and Habit Generator</h3>
-            <p className="text-sm text-gray-600">Let AI break down "{goal.title}" into actionable habits and milestones</p>
+            <p className="text-sm text-gray-600">Let AI break down your goal into actionable habits and milestones</p>
           </div>
         </div>
         
         <button
           onClick={handleGenerate}
-          disabled={loading}
+          disabled={loading || !selectedGoal}
           className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (
@@ -127,7 +153,64 @@ export function AIMilestoneHabitGenerator({
         </button>
       </div>
 
-      {showItems && (generatedHabits.length > 0 || generatedMilestones.length > 0) && (
+      {/* Goal Selector */}
+      <div className="mb-6">
+        <label htmlFor="goalSelect" className="block text-sm font-medium text-gray-700 mb-2">
+          Select Goal to Generate Plan For:
+        </label>
+        <div className="relative">
+          <select
+            id="goalSelect"
+            value={selectedGoalId}
+            onChange={(e) => {
+              setSelectedGoalId(e.target.value);
+              setShowItems(false); // Hide previous results when changing goal
+            }}
+            className="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors appearance-none bg-white"
+          >
+            {goals.map((goal) => (
+              <option key={goal.id} value={goal.id}>
+                {goal.title} ({goal.status})
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+        </div>
+        
+        {/* Selected Goal Preview */}
+        {selectedGoal && (
+          <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium text-gray-900">{selectedGoal.title}</h4>
+                {selectedGoal.description && (
+                  <p className="text-sm text-gray-600 mt-1">{selectedGoal.description}</p>
+                )}
+              </div>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                selectedGoal.status === 'completed' 
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : selectedGoal.status === 'paused'
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-indigo-100 text-indigo-700'
+              }`}>
+                {selectedGoal.status.charAt(0).toUpperCase() + selectedGoal.status.slice(1)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+              <span>Progress: {selectedGoal.progress}%</span>
+              {selectedGoal.start_date && (
+                <span>Started: {format(new Date(selectedGoal.start_date), 'MMM dd, yyyy')}</span>
+              )}
+              {selectedGoal.target_date && (
+                <span>Target: {format(new Date(selectedGoal.target_date), 'MMM dd, yyyy')}</span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {showItems && selectedGoal && (generatedHabits.length > 0 || generatedMilestones.length > 0) && (
         <div className="space-y-6">
           {/* Milestones Section */}
           {generatedMilestones.length > 0 && (
