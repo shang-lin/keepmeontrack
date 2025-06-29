@@ -129,8 +129,8 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
           </div>
         </header>
 
-        {/* Main content area - aligned with sidebar */}
-        <main className="flex-1 p-6">
+        {/* Main content area - aligned with sidebar, no top padding on desktop */}
+        <main className="flex-1 px-6 pb-6 pt-6 lg:pt-6">
           {children}
         </main>
 
