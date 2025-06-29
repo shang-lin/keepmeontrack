@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, Target, Calendar, CheckCircle, Plus, Flag, TrendingUp, Check, Play } from 'lucide-react';
 import { Database } from '../lib/supabase';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { MilestoneCard } from './MilestoneCard';
 
 type Goal = Database['public']['Tables']['goals']['Row'];
@@ -57,6 +57,24 @@ export function GoalCard({
         return Calendar;
       default:
         return Target;
+    }
+  };
+
+  // Helper function to format dates consistently
+  const formatDate = (dateString: string) => {
+    try {
+      // If the date string doesn't include time, treat it as a local date
+      if (!dateString.includes('T')) {
+        // Parse as local date by adding time component
+        const localDate = new Date(dateString + 'T00:00:00');
+        return format(localDate, 'MMM dd, yyyy');
+      } else {
+        // Parse as ISO string
+        return format(parseISO(dateString), 'MMM dd, yyyy');
+      }
+    } catch (error) {
+      console.error('Error formatting date:', dateString, error);
+      return 'Invalid date';
     }
   };
 
@@ -191,7 +209,7 @@ export function GoalCard({
                 <span>Started</span>
               </div>
               <p className="text-sm font-medium text-gray-900">
-                {format(new Date(goal.start_date), 'MMM dd, yyyy')}
+                {formatDate(goal.start_date)}
               </p>
             </div>
           )}
@@ -204,7 +222,7 @@ export function GoalCard({
                 <span>Target</span>
               </div>
               <p className="text-sm font-medium text-gray-900">
-                {format(new Date(goal.target_date), 'MMM dd, yyyy')}
+                {formatDate(goal.target_date)}
               </p>
             </div>
           )}

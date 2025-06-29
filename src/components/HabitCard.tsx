@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, Clock, Calendar, CheckCircle2, Circle, Play } from 'lucide-react';
 import { Database } from '../lib/supabase';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 type Habit = Database['public']['Tables']['habits']['Row'];
 
@@ -25,6 +25,24 @@ export function HabitCard({ habit, onEdit, onDelete, onToggleComplete }: HabitCa
         return value === 1 ? 'Monthly' : `${value}x per month`;
       default:
         return `Every ${value} days`;
+    }
+  };
+
+  // Helper function to format dates consistently
+  const formatDate = (dateString: string) => {
+    try {
+      // If the date string doesn't include time, treat it as a local date
+      if (!dateString.includes('T')) {
+        // Parse as local date by adding time component
+        const localDate = new Date(dateString + 'T00:00:00');
+        return format(localDate, 'MMM dd');
+      } else {
+        // Parse as ISO string
+        return format(parseISO(dateString), 'MMM dd');
+      }
+    } catch (error) {
+      console.error('Error formatting date:', dateString, error);
+      return 'Invalid date';
     }
   };
 
@@ -104,14 +122,14 @@ export function HabitCard({ habit, onEdit, onDelete, onToggleComplete }: HabitCa
           {habit.start_date && (
             <div className="flex items-center">
               <Play className="w-4 h-4 mr-1" />
-              {format(new Date(habit.start_date), 'MMM dd')}
+              {formatDate(habit.start_date)}
             </div>
           )}
           
           {habit.due_date && (
             <div className="flex items-center">
               <Calendar className="w-4 h-4 mr-1" />
-              {format(new Date(habit.due_date), 'MMM dd')}
+              {formatDate(habit.due_date)}
             </div>
           )}
         </div>
