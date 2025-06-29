@@ -45,8 +45,8 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-emerald-50 flex items-center justify-center p-4 relative">
-      {/* Badge - Fixed position in top-right corner */}
-      <div className="fixed top-4 right-4 z-50">
+      {/* Logo - Fixed position in bottom-left corner */}
+      <div className="fixed bottom-6 left-6 z-50">
         <img 
           src="/black_circle_360x360.png" 
           alt="Badge" 
