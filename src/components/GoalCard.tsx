@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, Target, Calendar, CheckCircle, Plus, Flag, TrendingUp, Check, Play, Clock } from 'lucide-react';
 import { Database } from '../lib/supabase';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, startOfDay, isValid } from 'date-fns';
 import { MilestoneCard } from './MilestoneCard';
 
 type Goal = Database['public']['Tables']['goals']['Row'];
@@ -80,6 +80,59 @@ export function GoalCard({
       default:
         return `Every ${value} days`;
     }
+  };
+
+  // Helper function to parse date strings consistently
+  const parseDate = (dateString: string) => {
+    try {
+      if (!dateString.includes('T')) {
+        return startOfDay(new Date(dateString + 'T00:00:00'));
+      } else {
+        return startOfDay(parseISO(dateString));
+      }
+    } catch (error) {
+      console.error('Error parsing date:', dateString, error);
+      return null;
+    }
+  };
+
+  // Helper function to check if a habit can be completed today
+  const canCompleteHabitToday = (habit: Habit) => {
+    const today = startOfDay(new Date());
+    
+    // Check goal start date
+    if (goal.start_date) {
+      const goalStartDate = parseDate(goal.start_date);
+      if (goalStartDate && isValid(goalStartDate) && today < goalStartDate) {
+        return false; // Goal hasn't started yet
+      }
+    }
+    
+    // Check habit start date
+    if (habit.start_date) {
+      const habitStartDate = parseDate(habit.start_date);
+      if (habitStartDate && isValid(habitStartDate) && today < habitStartDate) {
+        return false; // Habit hasn't started yet
+      }
+    }
+    
+    // Check goal target date (habits shouldn't be completable after goal ends)
+    if (goal.target_date) {
+      const goalTargetDate = parseDate(goal.target_date);
+      if (goalTargetDate && isValid(goalTargetDate) && today > goalTargetDate) {
+        return false; // Goal has ended
+      }
+    }
+    
+    // Check habit due date
+    if (habit.due_date) {
+      const habitDueDate = parseDate(habit.due_date);
+      if (habitDueDate && isValid(habitDueDate) && today > habitDueDate) {
+        return false; // Habit has ended
+      }
+    }
+    
+    return true;
   };
 
   // Helper function to format dates consistently
@@ -382,70 +435,94 @@ export function GoalCard({
 
             {showHabits && (
               <div className="space-y-2">
-                {habits.map((habit) => (
-                  <div
-                    key={habit.id}
-                    className={`bg-gray-50 rounded-lg p-3 border transition-colors ${
-                      habit.is_completed ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start flex-1">
-                        <button
-                          onClick={() => onToggleHabitComplete(habit.id, !habit.is_completed)}
-                          className={`mt-0.5 mr-3 transition-colors ${
-                            habit.is_completed 
-                              ? 'text-emerald-600 hover:text-emerald-700' 
-                              : 'text-gray-400 hover:text-gray-600'
-                          }`}
-                        >
-                          {habit.is_completed ? (
-                            <CheckCircle className="w-4 h-4" />
-                          ) : (
-                            <div className="w-4 h-4 border-2 border-current rounded-full"></div>
-                          )}
-                        </button>
-                        
-                        <div className="flex-1">
-                          <h5 className={`font-medium text-sm ${
-                            habit.is_completed ? 'text-emerald-900 line-through' : 'text-gray-900'
-                          }`}>
-                            {habit.title}
-                          </h5>
-                          <div className="flex items-center space-x-3 mt-1 text-xs text-gray-500">
-                            <div className="flex items-center">
-                              <Clock className="w-3 h-3 mr-1" />
-                              {getFrequencyText(habit.frequency, habit.frequency_value)}
-                            </div>
-                            {habit.due_date && (
+                {habits.map((habit) => {
+                  const canComplete = canCompleteHabitToday(habit);
+                  
+                  return (
+                    <div
+                      key={habit.id}
+                      className={`bg-gray-50 rounded-lg p-3 border transition-colors ${
+                        habit.is_completed ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start flex-1">
+                          <button
+                            onClick={() => canComplete && onToggleHabitComplete(habit.id, !habit.is_completed)}
+                            disabled={!canComplete}
+                            className={`mt-0.5 mr-3 transition-colors ${
+                              !canComplete 
+                                ? 'text-gray-300 cursor-not-allowed'
+                                : habit.is_completed 
+                                ? 'text-emerald-600 hover:text-emerald-700' 
+                                : 'text-gray-400 hover:text-gray-600'
+                            }`}
+                            title={!canComplete ? 'This habit cannot be completed yet' : 'Toggle completion'}
+                          >
+                            {habit.is_completed ? (
+                              <CheckCircle className="w-4 h-4" />
+                            ) : (
+                              <div className="w-4 h-4 border-2 border-current rounded-full"></div>
+                            )}
+                          </button>
+                          
+                          <div className="flex-1">
+                            <h5 className={`font-medium text-sm ${
+                              habit.is_completed ? 'text-emerald-900 line-through' : 'text-gray-900'
+                            }`}>
+                              {habit.title}
+                            </h5>
+                            <div className="flex items-center space-x-3 mt-1 text-xs text-gray-500">
                               <div className="flex items-center">
-                                <Calendar className="w-3 h-3 mr-1" />
-                                Due: {formatDate(habit.due_date)}
+                                <Clock className="w-3 h-3 mr-1" />
+                                {getFrequencyText(habit.frequency, habit.frequency_value)}
+                              </div>
+                              {habit.start_date && (
+                                <div className="flex items-center">
+                                  <Play className="w-3 h-3 mr-1" />
+                                  Starts: {formatDate(habit.start_date)}
+                                </div>
+                              )}
+                              {habit.due_date && (
+                                <div className="flex items-center">
+                                  <Calendar className="w-3 h-3 mr-1" />
+                                  Due: {formatDate(habit.due_date)}
+                                </div>
+                              )}
+                            </div>
+                            {!canComplete && (
+                              <div className="mt-1 text-xs text-amber-600 font-medium">
+                                {habit.start_date && parseDate(habit.start_date) && parseDate(habit.start_date)! > startOfDay(new Date()) 
+                                  ? `Starts ${formatDate(habit.start_date)}`
+                                  : goal.start_date && parseDate(goal.start_date) && parseDate(goal.start_date)! > startOfDay(new Date())
+                                  ? `Goal starts ${formatDate(goal.start_date)}`
+                                  : 'Not available for completion'
+                                }
                               </div>
                             )}
                           </div>
                         </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-1">
-                        <button
-                          onClick={() => onEditHabit(habit)}
-                          className="text-gray-400 hover:text-gray-600 p-1 rounded transition-colors"
-                          title="Edit habit"
-                        >
-                          <Edit className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => onDeleteHabit(habit.id)}
-                          className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors"
-                          title="Delete habit"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+                        
+                        <div className="flex items-center space-x-1">
+                          <button
+                            onClick={() => onEditHabit(habit)}
+                            className="text-gray-400 hover:text-gray-600 p-1 rounded transition-colors"
+                            title="Edit habit"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => onDeleteHabit(habit.id)}
+                            className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors"
+                            title="Delete habit"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </>
