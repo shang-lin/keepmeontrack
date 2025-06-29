@@ -15,6 +15,21 @@ export function CalendarView() {
   const monthEnd = endOfMonth(monthStart);
   const calendarDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
+  // Helper function to parse date strings consistently
+  const parseDate = (dateString: string) => {
+    try {
+      if (!dateString.includes('T')) {
+        // Parse as local date by adding time component
+        return startOfDay(new Date(dateString + 'T00:00:00'));
+      } else {
+        return startOfDay(parseISO(dateString));
+      }
+    } catch (error) {
+      console.error('Error parsing date:', dateString, error);
+      return null;
+    }
+  };
+
   // Helper function to determine if a habit should show on a specific date based on frequency
   const shouldShowHabitOnDate = (habit, date) => {
     const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
@@ -40,44 +55,38 @@ export function CalendarView() {
     }
   };
 
-  // Get habits for a specific date - now includes past dates
+  // Get habits for a specific date - now properly filters by start and due dates
   const getHabitsForDate = (date: Date) => {
+    const compareDate = startOfDay(date);
+    
     return habits.filter(habit => {
-      if (!habit.due_date) {
-        // If no due date, show habit based on frequency for all dates
-        return shouldShowHabitOnDate(habit, date);
-      }
-      
-      try {
-        // Parse the due date
-        let habitDueDate;
-        if (typeof habit.due_date === 'string') {
-          if (habit.due_date.includes('T')) {
-            habitDueDate = startOfDay(parseISO(habit.due_date));
-          } else {
-            habitDueDate = startOfDay(new Date(habit.due_date + 'T00:00:00'));
-          }
-        } else {
-          habitDueDate = startOfDay(new Date(habit.due_date));
-        }
-        
-        const compareDate = startOfDay(date);
-        
-        if (!isValid(habitDueDate)) {
+      // Parse start date
+      let habitStartDate = null;
+      if (habit.start_date) {
+        habitStartDate = parseDate(habit.start_date);
+        if (!habitStartDate || !isValid(habitStartDate)) {
           return false;
         }
-        
-        // Show habit if:
-        // 1. The selected date is on or before the due date
-        // 2. The habit should appear on this date based on frequency
-        const isBeforeDueDate = compareDate <= habitDueDate;
-        const shouldShowToday = shouldShowHabitOnDate(habit, date);
-        
-        return isBeforeDueDate && shouldShowToday;
-      } catch (error) {
-        console.error('Error parsing date for habit:', habit.title, error);
-        return false;
       }
+
+      // Parse due date
+      let habitDueDate = null;
+      if (habit.due_date) {
+        habitDueDate = parseDate(habit.due_date);
+        if (!habitDueDate || !isValid(habitDueDate)) {
+          return false;
+        }
+      }
+
+      // Check if the date is within the habit's active period
+      const isAfterStartDate = !habitStartDate || compareDate >= habitStartDate;
+      const isBeforeDueDate = !habitDueDate || compareDate <= habitDueDate;
+      
+      // Only show if date is within the active period AND should show based on frequency
+      const isInActivePeriod = isAfterStartDate && isBeforeDueDate;
+      const shouldShowToday = shouldShowHabitOnDate(habit, date);
+      
+      return isInActivePeriod && shouldShowToday;
     });
   };
 
@@ -89,21 +98,10 @@ export function CalendarView() {
       }
       
       try {
-        // Parse the target date
-        let milestoneTargetDate;
-        if (typeof milestone.target_date === 'string') {
-          if (milestone.target_date.includes('T')) {
-            milestoneTargetDate = startOfDay(parseISO(milestone.target_date));
-          } else {
-            milestoneTargetDate = startOfDay(new Date(milestone.target_date + 'T00:00:00'));
-          }
-        } else {
-          milestoneTargetDate = startOfDay(new Date(milestone.target_date));
-        }
-        
+        const milestoneTargetDate = parseDate(milestone.target_date);
         const compareDate = startOfDay(date);
         
-        if (!isValid(milestoneTargetDate)) {
+        if (!milestoneTargetDate || !isValid(milestoneTargetDate)) {
           return false;
         }
         
@@ -368,11 +366,14 @@ export function CalendarView() {
                                     {habit.description}
                                   </p>
                                 )}
-                                {habit.due_date && (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    Due: {format(new Date(habit.due_date), 'MMM dd, yyyy')}
-                                  </p>
-                                )}
+                                <div className="flex items-center space-x-3 mt-2 text-xs text-gray-500">
+                                  {habit.start_date && (
+                                    <span>Started: {format(parseDate(habit.start_date) || new Date(), 'MMM dd, yyyy')}</span>
+                                  )}
+                                  {habit.due_date && (
+                                    <span>Due: {format(parseDate(habit.due_date) || new Date(), 'MMM dd, yyyy')}</span>
+                                  )}
+                                </div>
                               </div>
                               <div className="flex items-center space-x-2">
                                 <button
