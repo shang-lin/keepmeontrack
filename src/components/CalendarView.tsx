@@ -114,6 +114,30 @@ export function CalendarView() {
     });
   };
 
+  // Get goals for a specific date - show goals on their target dates
+  const getGoalsForDate = (date: Date) => {
+    return goals.filter(goal => {
+      if (!goal.target_date) {
+        return false; // Don't show goals without target dates on calendar
+      }
+      
+      try {
+        const goalTargetDate = parseDate(goal.target_date);
+        const compareDate = startOfDay(date);
+        
+        if (!goalTargetDate || !isValid(goalTargetDate)) {
+          return false;
+        }
+        
+        // Show goal if the date matches the target date
+        return compareDate.getTime() === goalTargetDate.getTime();
+      } catch (error) {
+        console.error('Error parsing date for goal:', goal.title, error);
+        return false;
+      }
+    });
+  };
+
   const habitsForDate = useMemo(() => {
     return getHabitsForDate(selectedDate);
   }, [habits, selectedDate]);
@@ -121,6 +145,10 @@ export function CalendarView() {
   const milestonesForDate = useMemo(() => {
     return getMilestonesForDate(selectedDate);
   }, [milestones, selectedDate]);
+
+  const goalsForDate = useMemo(() => {
+    return getGoalsForDate(selectedDate);
+  }, [goals, selectedDate]);
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     if (direction === 'prev') {
@@ -158,7 +186,7 @@ export function CalendarView() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Calendar</h1>
-          <p className="text-gray-600 mt-1">View and manage your habits and milestones by date</p>
+          <p className="text-gray-600 mt-1">View and manage your habits, milestones, and goal deadlines by date</p>
         </div>
         <button
           onClick={handleCreateHabit}
@@ -212,7 +240,8 @@ export function CalendarView() {
             {calendarDays.map((day) => {
               const dayHabits = getHabitsForDate(day);
               const dayMilestones = getMilestonesForDate(day);
-              const totalItems = dayHabits.length + dayMilestones.length;
+              const dayGoals = getGoalsForDate(day);
+              const totalItems = dayHabits.length + dayMilestones.length + dayGoals.length;
               const isSelected = isSameDay(day, selectedDate);
               const isCurrentDay = isToday(day);
               const isCurrentMonth = isSameMonth(day, currentDate);
@@ -236,7 +265,7 @@ export function CalendarView() {
                     <div className="flex flex-col items-center">
                       {/* Dots row */}
                       <div className="flex space-x-1 mb-1">
-                        {/* Show up to 2 dots */}
+                        {/* Show up to 3 dots for different types */}
                         {dayHabits.length > 0 && (
                           <div className={`w-1.5 h-1.5 rounded-full ${
                             isSelected ? 'bg-white' : 'bg-emerald-600'
@@ -247,13 +276,18 @@ export function CalendarView() {
                             isSelected ? 'bg-white' : 'bg-purple-600'
                           }`}></div>
                         )}
+                        {dayGoals.length > 0 && (
+                          <div className={`w-1.5 h-1.5 rounded-full ${
+                            isSelected ? 'bg-white' : 'bg-blue-600'
+                          }`}></div>
+                        )}
                       </div>
                       {/* +n indicator below dots */}
-                      {totalItems > 2 && (
+                      {totalItems > 3 && (
                         <div className={`text-xs leading-none ${
                           isSelected ? 'text-white' : 'text-indigo-600'
                         }`}>
-                          +{totalItems - 2}
+                          +{totalItems - 3}
                         </div>
                       )}
                     </div>
@@ -274,15 +308,66 @@ export function CalendarView() {
               </h3>
             </div>
 
-            {habitsForDate.length === 0 && milestonesForDate.length === 0 ? (
+            {habitsForDate.length === 0 && milestonesForDate.length === 0 && goalsForDate.length === 0 ? (
               <div className="text-center py-8">
                 <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-3">
                   <CalendarIcon className="w-6 h-6 text-gray-400" />
                 </div>
-                <p className="text-gray-500 text-sm">No habits or milestones for this date</p>
+                <p className="text-gray-500 text-sm">No items for this date</p>
               </div>
             ) : (
               <div className="space-y-4">
+                {/* Goal Deadlines Section */}
+                {goalsForDate.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-900 mb-3 flex items-center">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full mr-2"></div>
+                      Goal Deadlines ({goalsForDate.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {goalsForDate.map((goal) => (
+                        <div
+                          key={goal.id}
+                          className={`p-3 border rounded-lg transition-colors ${
+                            goal.status === 'completed'
+                              ? 'border-blue-200 bg-blue-50'
+                              : 'border-gray-200 bg-white hover:border-blue-300'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h5 className={`font-medium text-sm ${
+                                goal.status === 'completed' ? 'text-blue-900 line-through' : 'text-gray-900'
+                              }`}>
+                                🎯 {goal.title}
+                              </h5>
+                              {goal.description && (
+                                <p className={`text-xs mt-1 ${
+                                  goal.status === 'completed' ? 'text-blue-700' : 'text-gray-600'
+                                }`}>
+                                  {goal.description}
+                                </p>
+                              )}
+                              <div className="flex items-center mt-2 text-xs text-gray-500">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  goal.status === 'completed' 
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : goal.status === 'paused'
+                                    ? 'bg-amber-100 text-amber-700'
+                                    : 'bg-indigo-100 text-indigo-700'
+                                }`}>
+                                  {goal.status.charAt(0).toUpperCase() + goal.status.slice(1)}
+                                </span>
+                                <span className="ml-2">{goal.progress}% complete</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Milestones Section */}
                 {milestonesForDate.length > 0 && (
                   <div>
