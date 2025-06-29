@@ -5,7 +5,7 @@ import { useGoals } from '../hooks/useGoals';
 import { HabitModal } from './HabitModal';
 
 export function CalendarView() {
-  const { goals, habits, milestones, toggleHabitCompletion, isHabitCompletedOnDate } = useGoals();
+  const { goals, habits, milestones, toggleHabitCompletion, isHabitCompletedOnDate, updateMilestone } = useGoals();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [habitModalOpen, setHabitModalOpen] = useState(false);
@@ -151,8 +151,7 @@ export function CalendarView() {
   };
 
   const handleToggleMilestoneComplete = async (milestoneId: string, completed: boolean) => {
-    // This would need to be implemented in useGoals hook
-    console.log('Toggle milestone completion:', milestoneId, completed);
+    await updateMilestone(milestoneId, { is_completed: completed });
   };
 
   return (
