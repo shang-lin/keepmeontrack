@@ -29,7 +29,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-gray-50 relative">
+    <div className="min-h-screen bg-gray-50 lg:flex">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
