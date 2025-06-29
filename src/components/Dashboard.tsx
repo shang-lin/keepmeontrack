@@ -37,6 +37,7 @@ export function Dashboard() {
   const [selectedHabit, setSelectedHabit] = useState(null);
   const [selectedMilestone, setSelectedMilestone] = useState(null);
   const [selectedGoalForMilestone, setSelectedGoalForMilestone] = useState('');
+  const [selectedGoalForHabit, setSelectedGoalForHabit] = useState('');
 
   const handleCreateGoal = async (goalData) => {
     const result = await createGoal(goalData);
@@ -155,8 +156,9 @@ export function Dashboard() {
     setGoalModalOpen(true);
   };
 
-  const openHabitModal = (habit = null) => {
+  const openHabitModal = (habit = null, goalId = '') => {
     setSelectedHabit(habit);
+    setSelectedGoalForHabit(goalId);
     setHabitModalOpen(true);
   };
 
@@ -318,6 +320,7 @@ export function Dashboard() {
                 onDelete={handleDeleteGoal}
                 onMarkComplete={handleMarkGoalComplete}
                 onAddMilestone={(goalId) => openMilestoneModal(null, goalId)}
+                onAddHabit={(goalId) => openHabitModal(null, goalId)}
                 onEditMilestone={(milestone) => openMilestoneModal(milestone, milestone.goal_id)}
                 onDeleteMilestone={handleDeleteMilestone}
                 onToggleMilestoneComplete={handleToggleMilestoneComplete}
@@ -379,10 +382,12 @@ export function Dashboard() {
         onClose={() => {
           setHabitModalOpen(false);
           setSelectedHabit(null);
+          setSelectedGoalForHabit('');
         }}
         onSave={selectedHabit ? handleUpdateHabit : handleCreateHabit}
         habit={selectedHabit}
         goals={goals}
+        preselectedGoalId={selectedGoalForHabit}
       />
 
       <MilestoneModal

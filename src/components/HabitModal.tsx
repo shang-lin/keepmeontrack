@@ -11,9 +11,10 @@ interface HabitModalProps {
   onSave: (habitData: Omit<Database['public']['Tables']['habits']['Insert'], 'user_id'>) => void;
   habit?: Habit | null;
   goals: Goal[];
+  preselectedGoalId?: string;
 }
 
-export function HabitModal({ isOpen, onClose, onSave, habit, goals }: HabitModalProps) {
+export function HabitModal({ isOpen, onClose, onSave, habit, goals, preselectedGoalId }: HabitModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [goalId, setGoalId] = useState('');
@@ -34,18 +35,21 @@ export function HabitModal({ isOpen, onClose, onSave, habit, goals }: HabitModal
     } else {
       setTitle('');
       setDescription('');
-      const firstGoal = goals[0];
-      setGoalId(firstGoal?.id || '');
+      // Use preselected goal ID if provided, otherwise use first goal
+      const targetGoalId = preselectedGoalId || goals[0]?.id || '';
+      setGoalId(targetGoalId);
       setFrequency('daily');
       setFrequencyValue(1);
+      
       // Default to goal's start date if available, otherwise today
-      const defaultStartDate = firstGoal?.start_date 
-        ? firstGoal.start_date.split('T')[0] 
+      const selectedGoal = goals.find(g => g.id === targetGoalId);
+      const defaultStartDate = selectedGoal?.start_date 
+        ? selectedGoal.start_date.split('T')[0] 
         : new Date().toISOString().split('T')[0];
       setStartDate(defaultStartDate);
       setDueDate('');
     }
-  }, [habit, goals, isOpen]);
+  }, [habit, goals, preselectedGoalId, isOpen]);
 
   // Update start date when goal changes (for new habits)
   useEffect(() => {

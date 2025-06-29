@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MoreHorizontal, Edit, Trash2, Target, Calendar, CheckCircle, Plus, Flag, TrendingUp, Check, Play } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Target, Calendar, CheckCircle, Plus, Flag, TrendingUp, Check, Play, UserPlus } from 'lucide-react';
 import { Database } from '../lib/supabase';
 import { format, parseISO } from 'date-fns';
 import { MilestoneCard } from './MilestoneCard';
@@ -17,6 +17,7 @@ interface GoalCardProps {
   onDelete: (id: string) => void;
   onMarkComplete: (id: string) => void;
   onAddMilestone: (goalId: string) => void;
+  onAddHabit: (goalId: string) => void;
   onEditMilestone: (milestone: Milestone) => void;
   onDeleteMilestone: (id: string) => void;
   onToggleMilestoneComplete: (id: string, completed: boolean) => void;
@@ -31,6 +32,7 @@ export function GoalCard({
   onDelete,
   onMarkComplete,
   onAddMilestone,
+  onAddHabit,
   onEditMilestone,
   onDeleteMilestone,
   onToggleMilestoneComplete
@@ -112,11 +114,23 @@ export function GoalCard({
         </div>
         
         <div className="flex items-center space-x-2">
+          {/* Add Habit Button - Only show for active goals */}
+          {isGoalActive && (
+            <button
+              onClick={() => onAddHabit(goal.id)}
+              className="px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors flex items-center"
+              title="Add habit to this goal"
+            >
+              <UserPlus className="w-4 h-4 mr-1" />
+              Add Habit
+            </button>
+          )}
+
           {/* Manual Complete Button - Only show for active goals */}
           {isGoalActive && (
             <button
               onClick={() => onMarkComplete(goal.id)}
-              className="px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors flex items-center"
+              className="px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors flex items-center"
               title="Mark goal as complete"
             >
               <Check className="w-4 h-4 mr-1" />
@@ -145,16 +159,28 @@ export function GoalCard({
                   Edit Goal
                 </button>
                 {isGoalActive && (
-                  <button
-                    onClick={() => {
-                      onMarkComplete(goal.id);
-                      setShowMenu(false);
-                    }}
-                    className="w-full flex items-center px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-3" />
-                    Mark as Complete
-                  </button>
+                  <>
+                    <button
+                      onClick={() => {
+                        onAddHabit(goal.id);
+                        setShowMenu(false);
+                      }}
+                      className="w-full flex items-center px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50"
+                    >
+                      <UserPlus className="w-4 h-4 mr-3" />
+                      Add Habit
+                    </button>
+                    <button
+                      onClick={() => {
+                        onMarkComplete(goal.id);
+                        setShowMenu(false);
+                      }}
+                      className="w-full flex items-center px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50"
+                    >
+                      <CheckCircle className="w-4 h-4 mr-3" />
+                      Mark as Complete
+                    </button>
+                  </>
                 )}
                 <button
                   onClick={() => {
