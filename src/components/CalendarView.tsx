@@ -224,7 +224,7 @@ export function CalendarView() {
                 <button
                   key={day.toString()}
                   onClick={() => handleDateClick(day)}
-                  className={`p-3 text-sm rounded-lg transition-colors relative min-h-[3rem] ${
+                  className={`p-3 text-sm rounded-lg transition-colors relative min-h-[3.5rem] flex flex-col items-center justify-start ${
                     isSelected
                       ? 'bg-indigo-600 text-white'
                       : isCurrentDay
@@ -234,22 +234,28 @@ export function CalendarView() {
                       : 'text-gray-400'
                   }`}
                 >
-                  <span className="block">{format(day, 'd')}</span>
+                  <span className="block mb-1">{format(day, 'd')}</span>
                   {totalItems > 0 && (
-                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex space-x-1">
-                      {/* Show different colored dots for habits vs milestones */}
-                      {dayHabits.length > 0 && (
-                        <div className={`w-1.5 h-1.5 rounded-full ${
-                          isSelected ? 'bg-white' : 'bg-emerald-600'
-                        }`}></div>
-                      )}
-                      {dayMilestones.length > 0 && (
-                        <div className={`w-1.5 h-1.5 rounded-full ${
-                          isSelected ? 'bg-white' : 'bg-purple-600'
-                        }`}></div>
-                      )}
+                    <div className="flex flex-col items-center">
+                      {/* Dots row */}
+                      <div className="flex space-x-1 mb-1">
+                        {/* Show up to 2 dots */}
+                        {dayHabits.length > 0 && (
+                          <div className={`w-1.5 h-1.5 rounded-full ${
+                            isSelected ? 'bg-white' : 'bg-emerald-600'
+                          }`}></div>
+                        )}
+                        {dayMilestones.length > 0 && (
+                          <div className={`w-1.5 h-1.5 rounded-full ${
+                            isSelected ? 'bg-white' : 'bg-purple-600'
+                          }`}></div>
+                        )}
+                      </div>
+                      {/* +n indicator below dots */}
                       {totalItems > 2 && (
-                        <div className={`text-xs ${isSelected ? 'text-white' : 'text-indigo-600'}`}>
+                        <div className={`text-xs leading-none ${
+                          isSelected ? 'text-white' : 'text-indigo-600'
+                        }`}>
                           +{totalItems - 2}
                         </div>
                       )}
