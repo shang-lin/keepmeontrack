@@ -55,12 +55,15 @@ export function CalendarView() {
     }
   };
 
-  // Get habits for a specific date - now properly filters by start and due dates
+  // Get habits for a specific date - now properly filters by start, due dates, and goal target date
   const getHabitsForDate = (date: Date) => {
     const compareDate = startOfDay(date);
     
     return habits.filter(habit => {
-      // Parse start date
+      // Find the associated goal
+      const associatedGoal = goals.find(goal => goal.id === habit.goal_id);
+      
+      // Parse habit start date
       let habitStartDate = null;
       if (habit.start_date) {
         habitStartDate = parseDate(habit.start_date);
@@ -69,7 +72,7 @@ export function CalendarView() {
         }
       }
 
-      // Parse due date
+      // Parse habit due date
       let habitDueDate = null;
       if (habit.due_date) {
         habitDueDate = parseDate(habit.due_date);
@@ -78,12 +81,22 @@ export function CalendarView() {
         }
       }
 
+      // Parse goal target date (this is the key fix!)
+      let goalTargetDate = null;
+      if (associatedGoal?.target_date) {
+        goalTargetDate = parseDate(associatedGoal.target_date);
+        if (!goalTargetDate || !isValid(goalTargetDate)) {
+          return false;
+        }
+      }
+
       // Check if the date is within the habit's active period
       const isAfterStartDate = !habitStartDate || compareDate >= habitStartDate;
-      const isBeforeDueDate = !habitDueDate || compareDate <= habitDueDate;
+      const isBeforeHabitDueDate = !habitDueDate || compareDate <= habitDueDate;
+      const isBeforeGoalTargetDate = !goalTargetDate || compareDate <= goalTargetDate;
       
-      // Only show if date is within the active period AND should show based on frequency
-      const isInActivePeriod = isAfterStartDate && isBeforeDueDate;
+      // Only show if date is within ALL active periods AND should show based on frequency
+      const isInActivePeriod = isAfterStartDate && isBeforeHabitDueDate && isBeforeGoalTargetDate;
       const shouldShowToday = shouldShowHabitOnDate(habit, date);
       
       return isInActivePeriod && shouldShowToday;
@@ -140,7 +153,7 @@ export function CalendarView() {
 
   const habitsForDate = useMemo(() => {
     return getHabitsForDate(selectedDate);
-  }, [habits, selectedDate]);
+  }, [habits, goals, selectedDate]); // Added goals dependency
 
   const milestonesForDate = useMemo(() => {
     return getMilestonesForDate(selectedDate);
