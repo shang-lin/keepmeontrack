@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Target, Calendar, Settings, LogOut, Menu, X, Moon, Sun } from 'lucide-react';
+import { Target, Calendar, Settings, LogOut, Menu, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 
@@ -11,7 +11,6 @@ interface LayoutProps {
 
 export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const { user, signOut } = useAuth();
 
   const handleSignOut = async () => {
@@ -30,16 +29,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
   ] as const;
 
   return (
-    <div className={`min-h-screen bg-gray-50 ${darkMode ? 'dark' : ''} relative`}>
-      {/* Badge - Fixed position in top-right corner */}
-      <div className="fixed top-4 right-4 z-50">
-        <img 
-          src="/black_circle_360x360.png" 
-          alt="Badge" 
-          className="w-12 h-12 rounded-full shadow-lg hover:shadow-xl transition-shadow duration-200 cursor-pointer"
-        />
-      </div>
-
+    <div className="min-h-screen bg-gray-50 relative">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -107,19 +97,6 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
               <p className="text-xs text-gray-500 truncate">{user?.email}</p>
             </div>
           </div>
-          
-          {/* Commented out Dark Mode toggle since it doesn't have functionality */}
-          {/*
-          <div className="flex items-center justify-between mb-3">
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className="flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              {darkMode ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
-              {darkMode ? 'Light Mode' : 'Dark Mode'}
-            </button>
-          </div>
-          */}
 
           <button
             onClick={handleSignOut}
@@ -152,10 +129,28 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
           </div>
         </header>
 
-        {/* Main content area - removed top padding to align with sidebar */}
-        <main className="flex-1 px-6 py-6 pr-20 lg:pt-0">
+        {/* Main content area - aligned with sidebar */}
+        <main className="flex-1 p-6">
           {children}
         </main>
+
+        {/* Logo positioned below sidebar on desktop */}
+        <div className="hidden lg:block fixed left-6 bottom-6 z-50">
+          <img 
+            src="/black_circle_360x360.png" 
+            alt="Badge" 
+            className="w-12 h-12 rounded-full shadow-lg hover:shadow-xl transition-shadow duration-200 cursor-pointer"
+          />
+        </div>
+
+        {/* Logo positioned in top-right on mobile */}
+        <div className="lg:hidden fixed top-4 right-4 z-50">
+          <img 
+            src="/black_circle_360x360.png" 
+            alt="Badge" 
+            className="w-12 h-12 rounded-full shadow-lg hover:shadow-xl transition-shadow duration-200 cursor-pointer"
+          />
+        </div>
       </div>
     </div>
   );
