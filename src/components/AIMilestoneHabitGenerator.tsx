@@ -129,8 +129,7 @@ export function AIMilestoneHabitGenerator({
             <Sparkles className="w-5 h-5 text-indigo-600" />
           </div>
           <div className="ml-3">
-            <h3 className="text-lg font-semibold text-gray-900">AI Milestone and Habit Generator</h3>
-            <p className="text-sm text-gray-600">Let AI break down your goal into actionable habits and milestones</p>
+            <h3 className="text-lg font-semibold text-gray-900">Goal Planner</h3>
           </div>
         </div>
         
