@@ -108,6 +108,8 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
             </div>
           </div>
           
+          {/* Commented out Dark Mode toggle since it doesn't have functionality */}
+          {/*
           <div className="flex items-center justify-between mb-3">
             <button
               onClick={() => setDarkMode(!darkMode)}
@@ -117,6 +119,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
               {darkMode ? 'Light Mode' : 'Dark Mode'}
             </button>
           </div>
+          */}
 
           <button
             onClick={handleSignOut}
