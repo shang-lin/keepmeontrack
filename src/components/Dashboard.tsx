@@ -6,7 +6,7 @@ import { GoalModal } from './GoalModal';
 import { HabitModal } from './HabitModal';
 import { MilestoneModal } from './MilestoneModal';
 import { HabitCard } from './HabitCard';
-import { AIHabitGenerator } from './AIHabitGenerator';
+import { AIMilestoneHabitGenerator } from './AIMilestoneHabitGenerator';
 import toast from 'react-hot-toast';
 
 export function Dashboard() {
@@ -277,12 +277,13 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* AI Habit Generator for first active goal */}
+      {/* AI Milestone and Habit Generator for first active goal */}
       {activeGoals.length > 0 && (
-        <AIHabitGenerator
+        <AIMilestoneHabitGenerator
           goal={activeGoals[0]}
-          onHabitsGenerated={() => {}}
+          onItemsGenerated={() => {}}
           onAddHabit={handleCreateHabit}
+          onAddMilestone={handleCreateMilestone}
         />
       )}
 
