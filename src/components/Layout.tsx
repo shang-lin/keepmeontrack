@@ -152,8 +152,8 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
           </div>
         </header>
 
-        {/* Main content area - adjusted padding to align with sidebar */}
-        <main className="flex-1 p-6 pr-20 lg:pt-6">
+        {/* Main content area - removed top padding to align with sidebar */}
+        <main className="flex-1 px-6 py-6 pr-20 lg:pt-0">
           {children}
         </main>
       </div>
