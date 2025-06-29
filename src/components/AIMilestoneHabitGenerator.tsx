@@ -155,7 +155,7 @@ export function AIMilestoneHabitGenerator({
       {/* Goal Selector */}
       <div className="mb-6">
         <label htmlFor="goalSelect" className="block text-sm font-medium text-gray-700 mb-2">
-          Select Goal to Generate Plan For:
+          Select Goal:
         </label>
         <div className="relative">
           <select
