@@ -133,6 +133,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
 
       {/* Main content */}
       <div className="lg:pl-64 flex flex-col flex-1">
+        {/* Mobile header - only visible on mobile */}
         <header className="bg-white shadow-sm border-b border-gray-200 lg:hidden">
           <div className="flex items-center justify-between h-16 px-4">
             <button
@@ -151,7 +152,8 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
           </div>
         </header>
 
-        <main className="flex-1 p-6 pr-20">
+        {/* Main content area - adjusted padding to align with sidebar */}
+        <main className="flex-1 p-6 pr-20 lg:pt-6">
           {children}
         </main>
       </div>
