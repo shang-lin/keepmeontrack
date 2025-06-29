@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Plus, Clock, Target, Flag, Calendar, ChevronDown } from 'lucide-react';
+import { Sparkles, Plus, Clock, Target, Flag, Calendar, ChevronDown, PlusCircle } from 'lucide-react';
 import { generateHabitsAndMilestonesForGoal, AIHabit, AIMilestone } from '../services/aiService';
 import { Database } from '../lib/supabase';
 import { format, addDays } from 'date-fns';
@@ -24,6 +24,7 @@ export function AIMilestoneHabitGenerator({
   const [generatedHabits, setGeneratedHabits] = useState<AIHabit[]>([]);
   const [generatedMilestones, setGeneratedMilestones] = useState<AIMilestone[]>([]);
   const [loading, setLoading] = useState(false);
+  const [addingAll, setAddingAll] = useState(false);
   const [showItems, setShowItems] = useState(false);
 
   const selectedGoal = goals.find(goal => goal.id === selectedGoalId);
@@ -80,6 +81,36 @@ export function AIMilestoneHabitGenerator({
     });
   };
 
+  const handleAddAll = async () => {
+    if (!selectedGoal || (generatedHabits.length === 0 && generatedMilestones.length === 0)) return;
+    
+    setAddingAll(true);
+    
+    try {
+      // Add all milestones first
+      for (const milestone of generatedMilestones) {
+        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to prevent overwhelming the database
+        handleAddMilestone(milestone);
+      }
+      
+      // Then add all habits
+      for (const habit of generatedHabits) {
+        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to prevent overwhelming the database
+        handleAddHabit(habit);
+      }
+      
+      // Clear the generated items after adding them all
+      setGeneratedHabits([]);
+      setGeneratedMilestones([]);
+      setShowItems(false);
+      
+    } catch (error) {
+      console.error('Error adding all items:', error);
+    } finally {
+      setAddingAll(false);
+    }
+  };
+
   const getFrequencyText = (frequency: AIHabit['frequency'], value: number) => {
     switch (frequency) {
       case 'daily':
@@ -120,6 +151,8 @@ export function AIMilestoneHabitGenerator({
   if (goals.length === 0) {
     return null;
   }
+
+  const totalItems = generatedHabits.length + generatedMilestones.length;
 
   return (
     <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-200">
@@ -211,6 +244,36 @@ export function AIMilestoneHabitGenerator({
 
       {showItems && selectedGoal && (generatedHabits.length > 0 || generatedMilestones.length > 0) && (
         <div className="space-y-6">
+          {/* Add All Button */}
+          <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+            <div className="flex items-center">
+              <PlusCircle className="w-5 h-5 text-indigo-600 mr-2" />
+              <div>
+                <h4 className="font-medium text-gray-900">Add All Items</h4>
+                <p className="text-sm text-gray-600">
+                  Add all {totalItems} suggested items ({generatedMilestones.length} milestones, {generatedHabits.length} habits) to your goal
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleAddAll}
+              disabled={addingAll || totalItems === 0}
+              className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {addingAll ? (
+                <div className="flex items-center">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Adding...
+                </div>
+              ) : (
+                <div className="flex items-center">
+                  <PlusCircle className="w-4 h-4 mr-2" />
+                  Add All
+                </div>
+              )}
+            </button>
+          </div>
+
           {/* Milestones Section */}
           {generatedMilestones.length > 0 && (
             <div>
