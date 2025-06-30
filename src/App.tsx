@@ -8,7 +8,7 @@ import { CalendarView } from './components/CalendarView';
 import { Settings } from './components/Settings';
 
 function App() {
-  const { user, loading, isDemoMode } = useAuth();
+  const { user, loading } = useAuth();
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [activeTab, setActiveTab] = useState<'dashboard' | 'calendar' | 'settings'>('dashboard');
 
@@ -20,8 +20,7 @@ function App() {
     );
   }
 
-  // Show auth form only if no user AND not in demo mode
-  if (!user && !isDemoMode) {
+  if (!user) {
     return (
       <>
         <AuthForm
