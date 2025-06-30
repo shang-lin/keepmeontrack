@@ -81,6 +81,7 @@ export function useAuth() {
     localStorage.setItem('demo_mode', 'true');
     setIsDemoMode(true);
     setUser(DEMO_USER);
+    setLoading(false);
   };
 
   return {
