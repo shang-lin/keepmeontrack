@@ -2,30 +2,11 @@ import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
-// Demo user data
-const DEMO_USER = {
-  id: 'demo-user-id',
-  email: 'demo@keepmeontrack.co',
-  user_metadata: {
-    full_name: 'Demo User'
-  }
-} as User;
-
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isDemoMode, setIsDemoMode] = useState(false);
 
   useEffect(() => {
-    // Check if demo mode is enabled in localStorage
-    const demoMode = localStorage.getItem('demo_mode') === 'true';
-    if (demoMode) {
-      setIsDemoMode(true);
-      setUser(DEMO_USER);
-      setLoading(false);
-      return;
-    }
-
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -65,31 +46,15 @@ export function useAuth() {
   };
 
   const signOut = async () => {
-    // Clear demo mode
-    if (isDemoMode) {
-      localStorage.removeItem('demo_mode');
-      setIsDemoMode(false);
-      setUser(null);
-      return { error: null };
-    }
-
     const { error } = await supabase.auth.signOut();
     return { error };
-  };
-
-  const enterDemoMode = () => {
-    localStorage.setItem('demo_mode', 'true');
-    setIsDemoMode(true);
-    setUser(DEMO_USER);
   };
 
   return {
     user,
     loading,
-    isDemoMode,
     signUp,
     signIn,
     signOut,
-    enterDemoMode,
   };
 }

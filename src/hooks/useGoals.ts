@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, Database } from '../lib/supabase';
 import { useAuth } from './useAuth';
-import { useDemoData } from './useDemoData';
 
 type Goal = Database['public']['Tables']['goals']['Row'];
 type Habit = Database['public']['Tables']['habits']['Row'];
@@ -9,42 +8,21 @@ type HabitCompletion = Database['public']['Tables']['habit_completions']['Row'];
 type Milestone = Database['public']['Tables']['milestones']['Row'];
 
 export function useGoals() {
-  const { user, isDemoMode } = useAuth();
-  const demoData = useDemoData();
-  
+  const { user } = useAuth();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [habitCompletions, setHabitCompletions] = useState<HabitCompletion[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Return demo data if in demo mode
-  if (isDemoMode) {
-    return {
-      ...demoData,
-      // Add progress calculation for demo mode
-      getGoalProgress: (goalId: string) => {
-        const goal = demoData.goals.find(g => g.id === goalId);
-        return goal?.progress || 0;
-      },
-      calculateGoalProgress: (goalId: string) => {
-        const goal = demoData.goals.find(g => g.id === goalId);
-        return goal?.progress || 0;
-      },
-      updateGoalProgress: async () => {},
-      reorderHabits: async () => {},
-      reorderMilestones: async () => {},
-    };
-  }
-
   useEffect(() => {
-    if (user && !isDemoMode) {
+    if (user) {
       fetchGoals();
       fetchHabits();
       fetchHabitCompletions();
       fetchMilestones();
     }
-  }, [user, isDemoMode]);
+  }, [user]);
 
   // Calculate goal progress based on habits and milestones
   const calculateGoalProgress = (goalId: string) => {

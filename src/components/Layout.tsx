@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Target, Calendar, Settings, LogOut, Menu, X, Play } from 'lucide-react';
+import { Target, Calendar, Settings, LogOut, Menu, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 
@@ -11,14 +11,14 @@ interface LayoutProps {
 
 export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, signOut, isDemoMode } = useAuth();
+  const { user, signOut } = useAuth();
 
   const handleSignOut = async () => {
     const { error } = await signOut();
     if (error) {
       toast.error('Error signing out');
     } else {
-      toast.success(isDemoMode ? 'Demo session ended' : 'Signed out successfully');
+      toast.success('Signed out successfully');
     }
   };
 
@@ -39,6 +39,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
       )}
 
       {/* Sidebar */}
+      {/*<div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col`}>*/}
       <div className={`z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out flex flex-col
   ${sidebarOpen ? 'fixed inset-y-0 left-0 translate-x-0' : 'fixed inset-y-0 left-0 -translate-x-full'}
   lg:static lg:translate-x-0`}>
@@ -59,19 +60,6 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
             <X className="w-6 h-6" />
           </button>
         </div>
-
-        {/* Demo Mode Indicator */}
-        {isDemoMode && (
-          <div className="mx-3 mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-            <div className="flex items-center">
-              <Play className="w-4 h-4 text-emerald-600 mr-2" />
-              <span className="text-sm font-medium text-emerald-800">Demo Mode</span>
-            </div>
-            <p className="text-xs text-emerald-600 mt-1">
-              You're exploring with sample data
-            </p>
-          </div>
-        )}
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-6 overflow-y-auto">
@@ -104,16 +92,14 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
           <div className="flex items-center mb-4">
             <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
               <span className="text-indigo-600 font-medium">
-                {isDemoMode ? 'D' : user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U'}
+                {user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U'}
               </span>
             </div>
             <div className="ml-3 flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {isDemoMode ? 'Demo User' : user?.user_metadata?.full_name || 'User'}
+                {user?.user_metadata?.full_name || 'User'}
               </p>
-              <p className="text-xs text-gray-500 truncate">
-                {isDemoMode ? 'demo@keepmeontrack.co' : user?.email}
-              </p>
+              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
             </div>
           </div>
 
@@ -122,7 +108,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
             className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
           >
             <LogOut className="w-4 h-4 mr-3 flex-shrink-0" />
-            {isDemoMode ? 'Exit Demo' : 'Sign Out'}
+            Sign Out
           </button>
         </div>
       </div>
@@ -143,11 +129,6 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
                 <div className="w-4 h-4 bg-white rounded-sm"></div>
               </div>
               <span className="ml-2 text-lg font-bold text-gray-900">KeepMeOnTrack</span>
-              {isDemoMode && (
-                <span className="ml-2 px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
-                  Demo
-                </span>
-              )}
             </div>
             <div className="w-6"></div>
           </div>
