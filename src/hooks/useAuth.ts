@@ -73,6 +73,7 @@ export function useAuth() {
       localStorage.removeItem('demo_mode');
       setIsDemoMode(false);
       setUser(null);
+      setLoading(false);
       return { error: null };
     }
 
@@ -85,6 +86,7 @@ export function useAuth() {
     localStorage.setItem('demo_mode', 'true');
     setIsDemoMode(true);
     setUser(DEMO_USER);
+    setLoading(false);
   };
 
   return {
