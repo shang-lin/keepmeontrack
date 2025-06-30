@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Target, TrendingUp, Calendar, CheckCircle, Flag, AlertCircle } from 'lucide-react';
 import { useGoals } from '../hooks/useGoals';
+import { useAuth } from '../hooks/useAuth';
 import { GoalCard } from './GoalCard';
 import { GoalModal } from './GoalModal';
 import { HabitModal } from './HabitModal';
@@ -31,6 +32,7 @@ export function Dashboard() {
     getHabitsForGoal,
     getGoalProgress
   } = useGoals();
+  const { signOut } = useAuth();
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [habitModalOpen, setHabitModalOpen] = useState(false);
   const [milestoneModalOpen, setMilestoneModalOpen] = useState(false);
@@ -152,6 +154,10 @@ export function Dashboard() {
     }
   };
 
+  const handleEndGuestSession = async () => {
+    await signOut();
+  };
+
   const openGoalModal = (goal = null) => {
     setSelectedGoal(goal);
     setGoalModalOpen(true);
@@ -230,7 +236,7 @@ export function Dashboard() {
                 You're viewing demo data. Changes you make won't be saved. Create a free account to start tracking your real goals and habits.
               </p>
               <button
-                onClick={() => window.location.href = '/'}
+                onClick={handleEndGuestSession}
                 className="px-4 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors"
               >
                 Create Account
