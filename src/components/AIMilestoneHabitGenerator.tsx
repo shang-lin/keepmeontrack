@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { Sparkles, Plus, Clock, Target, Flag, Calendar, ChevronDown, PlusCircle, Bot, Database } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sparkles, Plus, Clock, Target, Flag, Calendar, ChevronDown, PlusCircle, Bot, Database, AlertTriangle } from 'lucide-react';
 import { generateHabitsAndMilestonesForGoal, AIHabit, AIMilestone } from '../services/aiService';
 import { Database as DatabaseType } from '../lib/supabase';
 import { format, addDays } from 'date-fns';
+import { useAuth } from '../hooks/useAuth';
 
 type Goal = DatabaseType['public']['Tables']['goals']['Row'];
 
@@ -13,12 +14,17 @@ interface AIMilestoneHabitGeneratorProps {
   onAddMilestone: (milestoneData: Omit<DatabaseType['public']['Tables']['milestones']['Insert'], 'user_id'>) => void;
 }
 
+// Configuration for guest AI query limits
+const GUEST_AI_QUERY_LIMIT = 2; // Easy to change this number
+
 export function AIMilestoneHabitGenerator({ 
   goals, 
   onItemsGenerated, 
   onAddHabit, 
   onAddMilestone 
 }: AIMilestoneHabitGeneratorProps) {
+  const { isGuest } = useAuth();
+  
   // Default to the most recently created goal (first in the array since they're sorted by created_at desc)
   const [selectedGoalId, setSelectedGoalId] = useState(goals[0]?.id || '');
   const [generatedHabits, setGeneratedHabits] = useState<AIHabit[]>([]);
@@ -29,15 +35,56 @@ export function AIMilestoneHabitGenerator({
   const [generationSource, setGenerationSource] = useState<'openai' | 'mock' | null>(null);
   const [generationModel, setGenerationModel] = useState<string | null>(null);
   const [generationTimestamp, setGenerationTimestamp] = useState<string | null>(null);
+  
+  // Guest AI query tracking
+  const [guestQueryCount, setGuestQueryCount] = useState(0);
+
+  // Load guest query count from sessionStorage on component mount
+  useEffect(() => {
+    if (isGuest) {
+      const savedCount = sessionStorage.getItem('guest_ai_query_count');
+      if (savedCount) {
+        setGuestQueryCount(parseInt(savedCount, 10) || 0);
+      }
+    }
+  }, [isGuest]);
+
+  // Save guest query count to sessionStorage whenever it changes
+  useEffect(() => {
+    if (isGuest) {
+      sessionStorage.setItem('guest_ai_query_count', guestQueryCount.toString());
+    }
+  }, [guestQueryCount, isGuest]);
 
   const selectedGoal = goals.find(goal => goal.id === selectedGoalId);
+
+  const canMakeAIQuery = () => {
+    if (!isGuest) return true; // No limit for authenticated users
+    return guestQueryCount < GUEST_AI_QUERY_LIMIT;
+  };
+
+  const getRemainingQueries = () => {
+    if (!isGuest) return null;
+    return Math.max(0, GUEST_AI_QUERY_LIMIT - guestQueryCount);
+  };
 
   const handleGenerate = async () => {
     if (!selectedGoal) return;
     
+    // Check if guest user has exceeded query limit
+    if (isGuest && !canMakeAIQuery()) {
+      return; // Button should be disabled, but extra safety check
+    }
+    
     setLoading(true);
     try {
       const breakdown = await generateHabitsAndMilestonesForGoal(selectedGoal.title, selectedGoal.description || undefined);
+      
+      // Only increment counter for guest users and only if we got a response
+      if (isGuest) {
+        setGuestQueryCount(prev => prev + 1);
+      }
+      
       setGeneratedHabits(breakdown.habits);
       setGeneratedMilestones(breakdown.milestones);
       setGenerationSource(breakdown.source);
@@ -162,6 +209,8 @@ export function AIMilestoneHabitGenerator({
   }
 
   const totalItems = generatedHabits.length + generatedMilestones.length;
+  const remainingQueries = getRemainingQueries();
+  const canQuery = canMakeAIQuery();
 
   return (
     <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-200">
@@ -190,24 +239,61 @@ export function AIMilestoneHabitGenerator({
           </div>
         </div>
         
-        <button
-          onClick={handleGenerate}
-          disabled={loading || !selectedGoal}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? (
-            <div className="flex items-center">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-              Generating...
-            </div>
-          ) : (
-            <div className="flex items-center">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Generate Plan
+        <div className="flex flex-col items-end">
+          <button
+            onClick={handleGenerate}
+            disabled={loading || !selectedGoal || !canQuery}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <div className="flex items-center">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                Generating...
+              </div>
+            ) : (
+              <div className="flex items-center">
+                <Sparkles className="w-4 h-4 mr-2" />
+                Generate Plan
+              </div>
+            )}
+          </button>
+          
+          {/* Guest query limit indicator */}
+          {isGuest && (
+            <div className="mt-2 text-xs text-gray-600 text-right">
+              {canQuery ? (
+                <span>{remainingQueries} AI {remainingQueries === 1 ? 'query' : 'queries'} remaining</span>
+              ) : (
+                <div className="flex items-center text-amber-600">
+                  <AlertTriangle className="w-3 h-3 mr-1" />
+                  <span>AI query limit reached</span>
+                </div>
+              )}
             </div>
           )}
-        </button>
+        </div>
       </div>
+
+      {/* Guest limit warning */}
+      {isGuest && !canQuery && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-start">
+            <AlertTriangle className="w-5 h-5 text-amber-600 mr-3 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-medium text-amber-800 mb-1">AI Query Limit Reached</h4>
+              <p className="text-sm text-amber-700 mb-3">
+                You've used all {GUEST_AI_QUERY_LIMIT} AI planning queries available in guest mode. Create a free account to get unlimited AI-powered goal planning.
+              </p>
+              <button
+                onClick={() => window.location.href = '/'}
+                className="px-3 py-1.5 bg-amber-600 text-white text-sm rounded-lg font-medium hover:bg-amber-700 transition-colors"
+              >
+                Create Account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Goal Selector */}
       <div className="mb-6">
