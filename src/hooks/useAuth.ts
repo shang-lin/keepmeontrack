@@ -26,8 +26,9 @@ export function useAuth() {
       setIsGuest(true);
       setLoading(false);
       
-      // Store guest session in localStorage
-      localStorage.setItem('guest_session', JSON.stringify({
+      // Store guest session in sessionStorage instead of localStorage
+      // This makes it tab-specific rather than browser-wide
+      sessionStorage.setItem('guest_session', JSON.stringify({
         user: guestUser,
         token: guestToken,
         timestamp: Date.now()
@@ -36,8 +37,8 @@ export function useAuth() {
       return;
     }
 
-    // Check for existing guest session
-    const guestSession = localStorage.getItem('guest_session');
+    // Check for existing guest session in sessionStorage (not localStorage)
+    const guestSession = sessionStorage.getItem('guest_session');
     if (guestSession) {
       try {
         const session = JSON.parse(guestSession);
@@ -48,12 +49,15 @@ export function useAuth() {
           setLoading(false);
           return;
         } else {
-          localStorage.removeItem('guest_session');
+          sessionStorage.removeItem('guest_session');
         }
       } catch (error) {
-        localStorage.removeItem('guest_session');
+        sessionStorage.removeItem('guest_session');
       }
     }
+
+    // Clean up any old localStorage guest sessions
+    localStorage.removeItem('guest_session');
 
     // Get initial session for regular users
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -97,10 +101,11 @@ export function useAuth() {
 
   const signOut = async () => {
     if (isGuest) {
-      localStorage.removeItem('guest_session');
+      sessionStorage.removeItem('guest_session');
       setUser(null);
       setIsGuest(false);
-      window.location.href = '/';
+      // Redirect to main page without guest parameter
+      window.location.href = window.location.origin;
       return { error: null };
     }
     
