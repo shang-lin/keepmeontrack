@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Target, Calendar, Settings, LogOut, Menu, X } from 'lucide-react';
+import { Target, Calendar, Settings, LogOut, Menu, X, UserCheck } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 
@@ -11,14 +11,14 @@ interface LayoutProps {
 
 export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, isGuest, signOut } = useAuth();
 
   const handleSignOut = async () => {
     const { error } = await signOut();
     if (error) {
       toast.error('Error signing out');
     } else {
-      toast.success('Signed out successfully');
+      toast.success(isGuest ? 'Guest session ended' : 'Signed out successfully');
     }
   };
 
@@ -39,7 +39,6 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
       )}
 
       {/* Sidebar */}
-      {/*<div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col`}>*/}
       <div className={`z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out flex flex-col
   ${sidebarOpen ? 'fixed inset-y-0 left-0 translate-x-0' : 'fixed inset-y-0 left-0 -translate-x-full'}
   lg:static lg:translate-x-0`}>
@@ -60,6 +59,19 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
             <X className="w-6 h-6" />
           </button>
         </div>
+
+        {/* Guest Mode Banner */}
+        {isGuest && (
+          <div className="mx-3 mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-center">
+              <UserCheck className="w-4 h-4 text-amber-600 mr-2 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-medium text-amber-800">Guest Mode</p>
+                <p className="text-xs text-amber-700">Demo data only</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-6 overflow-y-auto">
@@ -90,16 +102,20 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
         {/* User Profile Section */}
         <div className="p-4 border-t border-gray-200 flex-shrink-0">
           <div className="flex items-center mb-4">
-            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-indigo-600 font-medium">
-                {user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U'}
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+              isGuest ? 'bg-amber-100' : 'bg-indigo-100'
+            }`}>
+              <span className={`font-medium ${isGuest ? 'text-amber-600' : 'text-indigo-600'}`}>
+                {isGuest ? 'G' : (user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U')}
               </span>
             </div>
             <div className="ml-3 flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {user?.user_metadata?.full_name || 'User'}
+                {isGuest ? 'Guest User' : (user?.user_metadata?.full_name || 'User')}
               </p>
-              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+              <p className="text-xs text-gray-500 truncate">
+                {isGuest ? 'Demo Account' : user?.email}
+              </p>
             </div>
           </div>
 
@@ -108,7 +124,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
             className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
           >
             <LogOut className="w-4 h-4 mr-3 flex-shrink-0" />
-            Sign Out
+            {isGuest ? 'End Session' : 'Sign Out'}
           </button>
         </div>
       </div>

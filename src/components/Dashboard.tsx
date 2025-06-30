@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Target, TrendingUp, Calendar, CheckCircle, Flag } from 'lucide-react';
+import { Plus, Target, TrendingUp, Calendar, CheckCircle, Flag, AlertCircle } from 'lucide-react';
 import { useGoals } from '../hooks/useGoals';
 import { GoalCard } from './GoalCard';
 import { GoalModal } from './GoalModal';
@@ -15,6 +15,7 @@ export function Dashboard() {
     habits, 
     milestones,
     loading, 
+    isGuest,
     createGoal, 
     updateGoal, 
     deleteGoal, 
@@ -196,7 +197,9 @@ export function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Track your goals and build better habits</p>
+          <p className="text-gray-600 mt-1">
+            {isGuest ? 'Exploring demo data - create an account to save your progress' : 'Track your goals and build better habits'}
+          </p>
         </div>
         <div className="flex gap-3">
           <button
@@ -215,6 +218,27 @@ export function Dashboard() {
           </button>
         </div>
       </div>
+
+      {/* Guest Mode Notice */}
+      {isGuest && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
+          <div className="flex items-start">
+            <AlertCircle className="w-6 h-6 text-amber-600 mr-3 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-lg font-semibold text-amber-800 mb-2">You're in Guest Mode</h3>
+              <p className="text-amber-700 mb-4">
+                You're viewing demo data. Changes you make won't be saved. Create a free account to start tracking your real goals and habits.
+              </p>
+              <button
+                onClick={() => window.location.href = '/'}
+                className="px-4 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors"
+              >
+                Create Account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">

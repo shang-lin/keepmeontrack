@@ -7,8 +7,145 @@ type Habit = Database['public']['Tables']['habits']['Row'];
 type HabitCompletion = Database['public']['Tables']['habit_completions']['Row'];
 type Milestone = Database['public']['Tables']['milestones']['Row'];
 
+// Demo data for guest users
+const DEMO_GOALS: Goal[] = [
+  {
+    id: 'demo-goal-1',
+    user_id: 'guest_demo',
+    title: 'Run a Marathon',
+    description: 'Complete my first 26.2-mile marathon race',
+    start_date: '2024-01-01',
+    target_date: '2024-06-15',
+    status: 'active',
+    progress: 65,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'demo-goal-2',
+    user_id: 'guest_demo',
+    title: 'Learn Spanish',
+    description: 'Achieve conversational fluency in Spanish',
+    start_date: '2024-02-01',
+    target_date: '2024-12-31',
+    status: 'active',
+    progress: 40,
+    created_at: '2024-02-01T00:00:00Z',
+    updated_at: '2024-02-01T00:00:00Z',
+  },
+];
+
+const DEMO_HABITS: Habit[] = [
+  {
+    id: 'demo-habit-1',
+    goal_id: 'demo-goal-1',
+    user_id: 'guest_demo',
+    title: 'Morning Run',
+    description: 'Run for 30-45 minutes every morning',
+    frequency: 'daily',
+    frequency_value: 1,
+    start_date: '2024-01-01',
+    due_date: null,
+    is_completed: false,
+    order_index: 0,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'demo-habit-2',
+    goal_id: 'demo-goal-1',
+    user_id: 'guest_demo',
+    title: 'Strength Training',
+    description: 'Focus on leg strength and core stability',
+    frequency: 'weekly',
+    frequency_value: 3,
+    start_date: '2024-01-01',
+    due_date: null,
+    is_completed: false,
+    order_index: 1,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'demo-habit-3',
+    goal_id: 'demo-goal-2',
+    user_id: 'guest_demo',
+    title: 'Daily Spanish Practice',
+    description: 'Practice Spanish vocabulary and grammar for 30 minutes',
+    frequency: 'daily',
+    frequency_value: 1,
+    start_date: '2024-02-01',
+    due_date: null,
+    is_completed: false,
+    order_index: 0,
+    created_at: '2024-02-01T00:00:00Z',
+    updated_at: '2024-02-01T00:00:00Z',
+  },
+];
+
+const DEMO_MILESTONES: Milestone[] = [
+  {
+    id: 'demo-milestone-1',
+    goal_id: 'demo-goal-1',
+    user_id: 'guest_demo',
+    title: 'Complete First 5K',
+    description: 'Run your first 5K without stopping',
+    target_date: '2024-02-01',
+    is_completed: true,
+    order_index: 0,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'demo-milestone-2',
+    goal_id: 'demo-goal-1',
+    user_id: 'guest_demo',
+    title: 'Reach 10K Distance',
+    description: 'Successfully complete a 10K run',
+    target_date: '2024-03-15',
+    is_completed: true,
+    order_index: 1,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'demo-milestone-3',
+    goal_id: 'demo-goal-1',
+    user_id: 'guest_demo',
+    title: 'Half Marathon Ready',
+    description: 'Complete a 21K half marathon',
+    target_date: '2024-05-01',
+    is_completed: false,
+    order_index: 2,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'demo-milestone-4',
+    goal_id: 'demo-goal-2',
+    user_id: 'guest_demo',
+    title: 'Basic Vocabulary (500 words)',
+    description: 'Learn and retain 500 essential Spanish words',
+    target_date: '2024-04-01',
+    is_completed: true,
+    order_index: 0,
+    created_at: '2024-02-01T00:00:00Z',
+    updated_at: '2024-02-01T00:00:00Z',
+  },
+];
+
+const DEMO_HABIT_COMPLETIONS: HabitCompletion[] = [
+  {
+    id: 'demo-completion-1',
+    habit_id: 'demo-habit-1',
+    user_id: 'guest_demo',
+    completed_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+  },
+];
+
 export function useGoals() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [habitCompletions, setHabitCompletions] = useState<HabitCompletion[]>([]);
@@ -17,12 +154,22 @@ export function useGoals() {
 
   useEffect(() => {
     if (user) {
-      fetchGoals();
-      fetchHabits();
-      fetchHabitCompletions();
-      fetchMilestones();
+      if (isGuest) {
+        // Load demo data for guest users
+        setGoals(DEMO_GOALS);
+        setHabits(DEMO_HABITS);
+        setMilestones(DEMO_MILESTONES);
+        setHabitCompletions(DEMO_HABIT_COMPLETIONS);
+        setLoading(false);
+      } else {
+        // Load real data for authenticated users
+        fetchGoals();
+        fetchHabits();
+        fetchHabitCompletions();
+        fetchMilestones();
+      }
     }
-  }, [user]);
+  }, [user, isGuest]);
 
   // Calculate goal progress based on habits and milestones
   const calculateGoalProgress = (goalId: string) => {
@@ -101,6 +248,8 @@ export function useGoals() {
 
   // Update goal progress automatically
   const updateGoalProgress = async (goalId: string) => {
+    if (isGuest) return; // Skip for guest users
+    
     const newProgress = calculateGoalProgress(goalId);
     
     // Only update if progress has changed
@@ -122,13 +271,15 @@ export function useGoals() {
 
   // Update all goal progress
   const updateAllGoalProgress = async () => {
+    if (isGuest) return; // Skip for guest users
+    
     for (const goal of goals) {
       await updateGoalProgress(goal.id);
     }
   };
 
   const fetchGoals = async () => {
-    if (!user) return;
+    if (!user || isGuest) return;
 
     const { data, error } = await supabase
       .from('goals')
@@ -145,7 +296,7 @@ export function useGoals() {
   };
 
   const fetchHabits = async () => {
-    if (!user) return;
+    if (!user || isGuest) return;
 
     const { data, error } = await supabase
       .from('habits')
@@ -161,7 +312,7 @@ export function useGoals() {
   };
 
   const fetchHabitCompletions = async () => {
-    if (!user) return;
+    if (!user || isGuest) return;
 
     const { data, error } = await supabase
       .from('habit_completions')
@@ -176,7 +327,7 @@ export function useGoals() {
   };
 
   const fetchMilestones = async () => {
-    if (!user) return;
+    if (!user || isGuest) return;
 
     const { data, error } = await supabase
       .from('milestones')
@@ -193,6 +344,20 @@ export function useGoals() {
 
   const createGoal = async (goalData: Omit<Database['public']['Tables']['goals']['Insert'], 'user_id'>) => {
     if (!user) return null;
+    
+    if (isGuest) {
+      // For guest users, just update local state
+      const newGoal: Goal = {
+        id: `demo-goal-${Date.now()}`,
+        user_id: user.id,
+        ...goalData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as Goal;
+      
+      setGoals(prev => [newGoal, ...prev]);
+      return newGoal;
+    }
 
     const { data, error } = await supabase
       .from('goals')
@@ -210,6 +375,14 @@ export function useGoals() {
   };
 
   const updateGoal = async (id: string, updates: Database['public']['Tables']['goals']['Update']) => {
+    if (isGuest) {
+      // For guest users, just update local state
+      setGoals(prev => prev.map(goal => 
+        goal.id === id ? { ...goal, ...updates, updated_at: new Date().toISOString() } : goal
+      ));
+      return goals.find(g => g.id === id) || null;
+    }
+
     const { data, error } = await supabase
       .from('goals')
       .update(updates)
@@ -227,6 +400,14 @@ export function useGoals() {
   };
 
   const deleteGoal = async (id: string) => {
+    if (isGuest) {
+      // For guest users, just update local state
+      setGoals(prev => prev.filter(goal => goal.id !== id));
+      setHabits(prev => prev.filter(habit => habit.goal_id !== id));
+      setMilestones(prev => prev.filter(milestone => milestone.goal_id !== id));
+      return true;
+    }
+
     const { error } = await supabase
       .from('goals')
       .delete()
@@ -246,6 +427,20 @@ export function useGoals() {
   const createHabit = async (habitData: Omit<Database['public']['Tables']['habits']['Insert'], 'user_id'>) => {
     if (!user) return null;
 
+    if (isGuest) {
+      // For guest users, just update local state
+      const newHabit: Habit = {
+        id: `demo-habit-${Date.now()}`,
+        user_id: user.id,
+        ...habitData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as Habit;
+      
+      setHabits(prev => [...prev, newHabit]);
+      return newHabit;
+    }
+
     const { data, error } = await supabase
       .from('habits')
       .insert([{ ...habitData, user_id: user.id }])
@@ -264,6 +459,14 @@ export function useGoals() {
   };
 
   const updateHabit = async (id: string, updates: Database['public']['Tables']['habits']['Update']) => {
+    if (isGuest) {
+      // For guest users, just update local state
+      setHabits(prev => prev.map(habit => 
+        habit.id === id ? { ...habit, ...updates, updated_at: new Date().toISOString() } : habit
+      ));
+      return habits.find(h => h.id === id) || null;
+    }
+
     const { data, error } = await supabase
       .from('habits')
       .update(updates)
@@ -288,6 +491,13 @@ export function useGoals() {
     // Get the habit to know which goal to update
     const habit = habits.find(h => h.id === id);
     
+    if (isGuest) {
+      // For guest users, just update local state
+      setHabits(prev => prev.filter(h => h.id !== id));
+      setHabitCompletions(prev => prev.filter(completion => completion.habit_id !== id));
+      return true;
+    }
+
     const { error } = await supabase
       .from('habits')
       .delete()
@@ -311,6 +521,20 @@ export function useGoals() {
   const createMilestone = async (milestoneData: Omit<Database['public']['Tables']['milestones']['Insert'], 'user_id'>) => {
     if (!user) return null;
 
+    if (isGuest) {
+      // For guest users, just update local state
+      const newMilestone: Milestone = {
+        id: `demo-milestone-${Date.now()}`,
+        user_id: user.id,
+        ...milestoneData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as Milestone;
+      
+      setMilestones(prev => [...prev, newMilestone]);
+      return newMilestone;
+    }
+
     const { data, error } = await supabase
       .from('milestones')
       .insert([{ ...milestoneData, user_id: user.id }])
@@ -329,6 +553,14 @@ export function useGoals() {
   };
 
   const updateMilestone = async (id: string, updates: Database['public']['Tables']['milestones']['Update']) => {
+    if (isGuest) {
+      // For guest users, just update local state
+      setMilestones(prev => prev.map(milestone => 
+        milestone.id === id ? { ...milestone, ...updates, updated_at: new Date().toISOString() } : milestone
+      ));
+      return milestones.find(m => m.id === id) || null;
+    }
+
     const { data, error } = await supabase
       .from('milestones')
       .update(updates)
@@ -353,6 +585,12 @@ export function useGoals() {
     // Get the milestone to know which goal to update
     const milestone = milestones.find(m => m.id === id);
     
+    if (isGuest) {
+      // For guest users, just update local state
+      setMilestones(prev => prev.filter(m => m.id !== id));
+      return true;
+    }
+
     const { error } = await supabase
       .from('milestones')
       .delete()
@@ -383,6 +621,23 @@ export function useGoals() {
         completion.habit_id === habitId && 
         completion.completed_at?.split('T')[0] === dateString
     );
+
+    if (isGuest) {
+      // For guest users, just update local state
+      if (existingCompletion) {
+        setHabitCompletions(prev => prev.filter(c => c.id !== existingCompletion.id));
+      } else {
+        const newCompletion: HabitCompletion = {
+          id: `demo-completion-${Date.now()}`,
+          habit_id: habitId,
+          user_id: user.id,
+          completed_at: date.toISOString(),
+          created_at: new Date().toISOString(),
+        };
+        setHabitCompletions(prev => [...prev, newCompletion]);
+      }
+      return true;
+    }
 
     if (existingCompletion) {
       // Remove completion
@@ -432,6 +687,17 @@ export function useGoals() {
   };
 
   const reorderHabits = async (habitIds: string[]) => {
+    if (isGuest) {
+      // For guest users, just update local state
+      const reorderedHabits = habitIds.map((id, index) => {
+        const habit = habits.find(h => h.id === id);
+        return habit ? { ...habit, order_index: index } : null;
+      }).filter(Boolean) as Habit[];
+      
+      setHabits(reorderedHabits);
+      return;
+    }
+
     const updates = habitIds.map((id, index) => ({
       id,
       order_index: index,
@@ -448,6 +714,17 @@ export function useGoals() {
   };
 
   const reorderMilestones = async (milestoneIds: string[]) => {
+    if (isGuest) {
+      // For guest users, just update local state
+      const reorderedMilestones = milestoneIds.map((id, index) => {
+        const milestone = milestones.find(m => m.id === id);
+        return milestone ? { ...milestone, order_index: index } : null;
+      }).filter(Boolean) as Milestone[];
+      
+      setMilestones(reorderedMilestones);
+      return;
+    }
+
     const updates = milestoneIds.map((id, index) => ({
       id,
       order_index: index,
@@ -478,10 +755,10 @@ export function useGoals() {
 
   // Update progress for all goals when data changes
   useEffect(() => {
-    if (goals.length > 0 && habits.length >= 0 && milestones.length >= 0) {
+    if (goals.length > 0 && habits.length >= 0 && milestones.length >= 0 && !isGuest) {
       updateAllGoalProgress();
     }
-  }, [habitCompletions, milestones]);
+  }, [habitCompletions, milestones, isGuest]);
 
   return {
     goals,
@@ -489,6 +766,7 @@ export function useGoals() {
     habitCompletions,
     milestones,
     loading,
+    isGuest,
     createGoal,
     updateGoal,
     deleteGoal,
@@ -508,10 +786,12 @@ export function useGoals() {
     calculateGoalProgress,
     updateGoalProgress,
     refetch: () => {
-      fetchGoals();
-      fetchHabits();
-      fetchHabitCompletions();
-      fetchMilestones();
+      if (!isGuest) {
+        fetchGoals();
+        fetchHabits();
+        fetchHabitCompletions();
+        fetchMilestones();
+      }
     },
   };
 }

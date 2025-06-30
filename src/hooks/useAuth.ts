@@ -4,12 +4,61 @@ import { supabase } from '../lib/supabase';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
+  const [isGuest, setIsGuest] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
+    // Check for guest mode in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const guestToken = urlParams.get('guest');
+    
+    if (guestToken) {
+      // Create a mock guest user
+      const guestUser = {
+        id: `guest_${guestToken}`,
+        email: `guest_${guestToken}@demo.com`,
+        user_metadata: {
+          full_name: 'Demo User'
+        }
+      } as User;
+      
+      setUser(guestUser);
+      setIsGuest(true);
+      setLoading(false);
+      
+      // Store guest session in localStorage
+      localStorage.setItem('guest_session', JSON.stringify({
+        user: guestUser,
+        token: guestToken,
+        timestamp: Date.now()
+      }));
+      
+      return;
+    }
+
+    // Check for existing guest session
+    const guestSession = localStorage.getItem('guest_session');
+    if (guestSession) {
+      try {
+        const session = JSON.parse(guestSession);
+        // Guest sessions expire after 24 hours
+        if (Date.now() - session.timestamp < 24 * 60 * 60 * 1000) {
+          setUser(session.user);
+          setIsGuest(true);
+          setLoading(false);
+          return;
+        } else {
+          localStorage.removeItem('guest_session');
+        }
+      } catch (error) {
+        localStorage.removeItem('guest_session');
+      }
+    }
+
+    // Get initial session for regular users
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      setIsGuest(false);
       setLoading(false);
     });
 
@@ -18,6 +67,7 @@ export function useAuth() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      setIsGuest(false);
       setLoading(false);
     });
 
@@ -46,15 +96,31 @@ export function useAuth() {
   };
 
   const signOut = async () => {
+    if (isGuest) {
+      localStorage.removeItem('guest_session');
+      setUser(null);
+      setIsGuest(false);
+      window.location.href = '/';
+      return { error: null };
+    }
+    
     const { error } = await supabase.auth.signOut();
     return { error };
   };
 
+  const createGuestSession = () => {
+    const guestToken = Math.random().toString(36).substring(2, 15);
+    const guestUrl = `${window.location.origin}?guest=${guestToken}`;
+    return guestUrl;
+  };
+
   return {
     user,
+    isGuest,
     loading,
     signUp,
     signIn,
     signOut,
+    createGuestSession,
   };
 }

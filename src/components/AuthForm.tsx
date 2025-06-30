@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Link, Copy } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 
@@ -14,7 +14,8 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
   const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const [showGuestAccess, setShowGuestAccess] = useState(false);
+  const { signIn, signUp, createGuestSession } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +42,15 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCreateGuestLink = () => {
+    const guestUrl = createGuestSession();
+    navigator.clipboard.writeText(guestUrl).then(() => {
+      toast.success('Guest access link copied to clipboard!');
+    }).catch(() => {
+      toast.error('Failed to copy link');
+    });
   };
 
   return (
@@ -155,6 +165,34 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
               )}
             </button>
           </form>
+
+          {/* Guest Access Section */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="text-center">
+              <button
+                onClick={() => setShowGuestAccess(!showGuestAccess)}
+                className="text-sm text-gray-600 hover:text-gray-800 font-medium transition-colors flex items-center justify-center mx-auto"
+              >
+                <Link className="w-4 h-4 mr-2" />
+                Need guest access?
+              </button>
+              
+              {showGuestAccess && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-3">
+                    Create a guest access link to share the app without requiring sign-up
+                  </p>
+                  <button
+                    onClick={handleCreateGuestLink}
+                    className="flex items-center justify-center mx-auto px-4 py-2 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors text-sm"
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Generate Guest Link
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
 
           <div className="mt-6 text-center">
             <p className="text-gray-600">
