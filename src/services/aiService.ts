@@ -1,4 +1,4 @@
-// Mock AI service - replace with actual AI API integration
+// AI service for generating habits and milestones from goals
 export interface AIHabit {
   title: string;
   description: string;
@@ -19,10 +19,107 @@ export interface AIGoalBreakdown {
   milestones: AIMilestone[];
 }
 
-export async function generateHabitsAndMilestonesForGoal(goalTitle: string, goalDescription?: string): Promise<AIGoalBreakdown> {
-  // Mock AI response - replace with actual API call
-  await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API delay
+// Check if OpenAI API key is available
+const hasOpenAIKey = () => {
+  return !!import.meta.env.VITE_OPENAI_API_KEY && import.meta.env.VITE_OPENAI_API_KEY !== 'your_openai_api_key_here';
+};
 
+// Real OpenAI integration
+async function generateWithOpenAI(goalTitle: string, goalDescription?: string): Promise<AIGoalBreakdown> {
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+  
+  if (!apiKey || apiKey === 'your_openai_api_key_here') {
+    throw new Error('OpenAI API key not configured');
+  }
+
+  const prompt = `Break down the goal "${goalTitle}" ${goalDescription ? `(${goalDescription})` : ''} into actionable habits and milestones.
+
+Return a JSON object with this exact structure:
+{
+  "habits": [
+    {
+      "title": "Specific habit name",
+      "description": "Clear description of what to do",
+      "frequency": "daily" | "weekly" | "monthly",
+      "frequency_value": number (how many times per frequency period),
+      "estimated_duration": "time estimate like '30 minutes'"
+    }
+  ],
+  "milestones": [
+    {
+      "title": "Milestone name",
+      "description": "What this milestone represents",
+      "target_date_offset": number (days from goal start date),
+      "estimated_completion_time": "time estimate like '4-6 weeks'"
+    }
+  ]
+}
+
+Guidelines:
+- Create 3-5 habits that are specific, measurable, and actionable
+- Create 3-5 milestones that mark significant progress points
+- Make habits realistic for daily/weekly practice
+- Space milestones appropriately throughout the goal timeline
+- Use realistic time estimates
+- Focus on building momentum with early wins`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant that breaks down goals into actionable habits and milestones. Always respond with valid JSON only, no additional text.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        max_tokens: 1500,
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}. ${errorData.error?.message || ''}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content;
+    
+    if (!content) {
+      throw new Error('No content received from OpenAI');
+    }
+
+    try {
+      const parsed = JSON.parse(content);
+      
+      // Validate the response structure
+      if (!parsed.habits || !parsed.milestones || !Array.isArray(parsed.habits) || !Array.isArray(parsed.milestones)) {
+        throw new Error('Invalid response structure from OpenAI');
+      }
+
+      return parsed;
+    } catch (parseError) {
+      console.error('Failed to parse OpenAI response:', content);
+      throw new Error('Invalid JSON response from OpenAI');
+    }
+  } catch (error) {
+    console.error('OpenAI API error:', error);
+    throw error;
+  }
+}
+
+// Mock data fallback
+const getMockBreakdown = (goalTitle: string): AIGoalBreakdown => {
   const mockBreakdowns: Record<string, AIGoalBreakdown> = {
     'run marathon': {
       habits: [
@@ -257,6 +354,28 @@ export async function generateHabitsAndMilestonesForGoal(goalTitle: string, goal
   );
 
   return mockBreakdowns[matchingKey || 'default'];
+};
+
+// Main function that tries OpenAI first, falls back to mock data
+export async function generateHabitsAndMilestonesForGoal(goalTitle: string, goalDescription?: string): Promise<AIGoalBreakdown> {
+  // Show loading state
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  if (hasOpenAIKey()) {
+    try {
+      console.log('Using OpenAI API for goal breakdown...');
+      return await generateWithOpenAI(goalTitle, goalDescription);
+    } catch (error) {
+      console.warn('OpenAI API failed, falling back to mock data:', error);
+      // Fall back to mock data if OpenAI fails
+      return getMockBreakdown(goalTitle);
+    }
+  } else {
+    console.log('OpenAI API key not configured, using mock data');
+    // Simulate API delay for consistent UX
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return getMockBreakdown(goalTitle);
+  }
 }
 
 // Legacy function for backward compatibility
@@ -264,43 +383,3 @@ export async function generateHabitsForGoal(goalTitle: string, goalDescription?:
   const breakdown = await generateHabitsAndMilestonesForGoal(goalTitle, goalDescription);
   return breakdown.habits;
 }
-
-// Real AI integration would look like this:
-/*
-export async function generateHabitsAndMilestonesForGoal(goalTitle: string, goalDescription?: string): Promise<AIGoalBreakdown> {
-  const prompt = `Break down the goal "${goalTitle}" ${goalDescription ? `(${goalDescription})` : ''} into:
-  1. 3-5 actionable habits with specific frequencies
-  2. 3-5 key milestones with target dates
-  
-  Return as JSON with "habits" and "milestones" arrays. 
-  
-  Habits should have: title, description, frequency (daily/weekly/monthly), frequency_value (number), estimated_duration
-  Milestones should have: title, description, target_date_offset (days from start), estimated_completion_time`;
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful assistant that breaks down goals into actionable habits and milestones. Always respond with valid JSON.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      max_tokens: 1500,
-      temperature: 0.7,
-    }),
-  });
-
-  const data = await response.json();
-  return JSON.parse(data.choices[0].message.content);
-}
-*/
