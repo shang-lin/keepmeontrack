@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Play } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 
@@ -14,7 +14,7 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
   const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, enterDemoMode } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +41,11 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDemoMode = () => {
+    enterDemoMode();
+    toast.success('Welcome to the demo! Explore all features with sample data.');
   };
 
   return (
@@ -74,6 +79,29 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
                 : 'Continue your journey to success'
               }
             </p>
+          </div>
+
+          {/* Demo Mode Button - Prominent placement */}
+          <div className="mb-6">
+            <button
+              onClick={handleDemoMode}
+              className="w-full flex items-center justify-center px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-medium hover:from-emerald-700 hover:to-teal-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all duration-200 shadow-md hover:shadow-lg"
+            >
+              <Play className="w-5 h-5 mr-2" />
+              Try Demo Mode
+            </button>
+            <p className="text-center text-sm text-gray-500 mt-2">
+              Explore all features with sample data - no account needed
+            </p>
+          </div>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">or continue with email</span>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
