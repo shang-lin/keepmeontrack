@@ -36,8 +36,11 @@ export function useAuth() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
+      // Only update user state if not in demo mode
+      if (!localStorage.getItem('demo_mode')) {
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -65,7 +68,7 @@ export function useAuth() {
   };
 
   const signOut = async () => {
-    // Clear demo mode first
+    // Handle demo mode exit
     if (isDemoMode) {
       localStorage.removeItem('demo_mode');
       setIsDemoMode(false);
@@ -82,7 +85,6 @@ export function useAuth() {
     localStorage.setItem('demo_mode', 'true');
     setIsDemoMode(true);
     setUser(DEMO_USER);
-    setLoading(false);
   };
 
   return {
