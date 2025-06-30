@@ -20,9 +20,8 @@ function App() {
     );
   }
 
-  // Show auth form if no user and not in demo mode
-  // Also show auth form if user is null regardless of demo mode state (for proper cleanup)
-  if (!user) {
+  // Show auth form only if no user AND not in demo mode
+  if (!user && !isDemoMode) {
     return (
       <>
         <AuthForm
