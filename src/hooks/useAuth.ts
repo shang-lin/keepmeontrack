@@ -110,6 +110,17 @@ export function useAuth() {
     }
     
     const { error } = await supabase.auth.signOut();
+    
+    // Handle the specific case where the session doesn't exist on the server
+    // but the client still has a session token
+    if (error && error.message && error.message.includes('Session from session_id claim in JWT does not exist')) {
+      // Treat this as a successful logout from the client's perspective
+      // since the session is already invalid on the server
+      setUser(null);
+      setIsGuest(false);
+      return { error: null };
+    }
+    
     return { error };
   };
 
