@@ -144,6 +144,32 @@ const DEMO_HABIT_COMPLETIONS: HabitCompletion[] = [
   },
 ];
 
+// Guest data persistence helpers
+const GUEST_DATA_KEYS = {
+  goals: 'guest_goals',
+  habits: 'guest_habits',
+  milestones: 'guest_milestones',
+  habitCompletions: 'guest_habit_completions',
+};
+
+const saveGuestData = (key: string, data: any) => {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(data));
+  } catch (error) {
+    console.error('Error saving guest data:', error);
+  }
+};
+
+const loadGuestData = (key: string, defaultData: any) => {
+  try {
+    const saved = sessionStorage.getItem(key);
+    return saved ? JSON.parse(saved) : defaultData;
+  } catch (error) {
+    console.error('Error loading guest data:', error);
+    return defaultData;
+  }
+};
+
 export function useGoals() {
   const { user, isGuest } = useAuth();
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -155,11 +181,16 @@ export function useGoals() {
   useEffect(() => {
     if (user) {
       if (isGuest) {
-        // Load demo data for guest users
-        setGoals(DEMO_GOALS);
-        setHabits(DEMO_HABITS);
-        setMilestones(DEMO_MILESTONES);
-        setHabitCompletions(DEMO_HABIT_COMPLETIONS);
+        // Load persisted guest data or use demo data as fallback
+        const persistedGoals = loadGuestData(GUEST_DATA_KEYS.goals, DEMO_GOALS);
+        const persistedHabits = loadGuestData(GUEST_DATA_KEYS.habits, DEMO_HABITS);
+        const persistedMilestones = loadGuestData(GUEST_DATA_KEYS.milestones, DEMO_MILESTONES);
+        const persistedCompletions = loadGuestData(GUEST_DATA_KEYS.habitCompletions, DEMO_HABIT_COMPLETIONS);
+        
+        setGoals(persistedGoals);
+        setHabits(persistedHabits);
+        setMilestones(persistedMilestones);
+        setHabitCompletions(persistedCompletions);
         setLoading(false);
       } else {
         // Load real data for authenticated users
@@ -170,6 +201,31 @@ export function useGoals() {
       }
     }
   }, [user, isGuest]);
+
+  // Auto-save guest data whenever state changes
+  useEffect(() => {
+    if (isGuest && user) {
+      saveGuestData(GUEST_DATA_KEYS.goals, goals);
+    }
+  }, [goals, isGuest, user]);
+
+  useEffect(() => {
+    if (isGuest && user) {
+      saveGuestData(GUEST_DATA_KEYS.habits, habits);
+    }
+  }, [habits, isGuest, user]);
+
+  useEffect(() => {
+    if (isGuest && user) {
+      saveGuestData(GUEST_DATA_KEYS.milestones, milestones);
+    }
+  }, [milestones, isGuest, user]);
+
+  useEffect(() => {
+    if (isGuest && user) {
+      saveGuestData(GUEST_DATA_KEYS.habitCompletions, habitCompletions);
+    }
+  }, [habitCompletions, isGuest, user]);
 
   // Calculate goal progress based on habits and milestones
   const calculateGoalProgress = (goalId: string) => {
