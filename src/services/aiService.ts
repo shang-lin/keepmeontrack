@@ -17,6 +17,9 @@ export interface AIMilestone {
 export interface AIGoalBreakdown {
   habits: AIHabit[];
   milestones: AIMilestone[];
+  source: 'openai' | 'mock';
+  model?: string;
+  timestamp: string;
 }
 
 // Secure AI integration using Supabase Edge Functions
@@ -59,7 +62,7 @@ export async function generateHabitsAndMilestonesForGoal(goalTitle: string, goal
 
 // Local fallback function
 function getMockBreakdown(goalTitle: string): AIGoalBreakdown {
-  const mockBreakdowns: Record<string, AIGoalBreakdown> = {
+  const mockBreakdowns: Record<string, Omit<AIGoalBreakdown, 'source' | 'timestamp'>> = {
     'run marathon': {
       habits: [
         {
@@ -292,7 +295,13 @@ function getMockBreakdown(goalTitle: string): AIGoalBreakdown {
     key !== 'default' && searchKey.includes(key)
   );
 
-  return mockBreakdowns[matchingKey || 'default'];
+  const baseBreakdown = mockBreakdowns[matchingKey || 'default'];
+  
+  return {
+    ...baseBreakdown,
+    source: 'mock',
+    timestamp: new Date().toISOString(),
+  };
 }
 
 // Legacy function for backward compatibility

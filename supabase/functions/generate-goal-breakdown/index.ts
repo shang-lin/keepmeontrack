@@ -18,6 +18,9 @@ interface AIMilestone {
 interface AIGoalBreakdown {
   habits: AIHabit[];
   milestones: AIMilestone[];
+  source: 'openai' | 'mock';
+  model?: string;
+  timestamp: string;
 }
 
 const corsHeaders = {
@@ -91,7 +94,11 @@ serve(async (req: Request) => {
       );
     } catch {
       return new Response(
-        JSON.stringify({ error: "Internal server error" }),
+        JSON.stringify({ 
+          error: "Internal server error",
+          source: 'error',
+          timestamp: new Date().toISOString()
+        }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -102,6 +109,8 @@ serve(async (req: Request) => {
 });
 
 async function generateWithOpenAI(goalTitle: string, goalDescription: string | undefined, apiKey: string): Promise<AIGoalBreakdown> {
+  const model = 'gpt-3.5-turbo';
+  
   const prompt = `Break down the goal "${goalTitle}" ${goalDescription ? `(${goalDescription})` : ''} into actionable habits and milestones.
 
 Return a JSON object with this exact structure:
@@ -140,7 +149,7 @@ Guidelines:
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-3.5-turbo',
+      model,
       messages: [
         {
           role: 'system',
@@ -175,11 +184,17 @@ Guidelines:
     throw new Error('Invalid response structure from OpenAI');
   }
 
-  return parsed;
+  // Add metadata about the AI generation
+  return {
+    ...parsed,
+    source: 'openai',
+    model,
+    timestamp: new Date().toISOString(),
+  };
 }
 
 function getMockBreakdown(goalTitle: string): AIGoalBreakdown {
-  const mockBreakdowns: Record<string, AIGoalBreakdown> = {
+  const mockBreakdowns: Record<string, Omit<AIGoalBreakdown, 'source' | 'timestamp'>> = {
     'run marathon': {
       habits: [
         {
@@ -264,5 +279,11 @@ function getMockBreakdown(goalTitle: string): AIGoalBreakdown {
     key !== 'default' && searchKey.includes(key)
   );
 
-  return mockBreakdowns[matchingKey || 'default'];
+  const baseBreakdown = mockBreakdowns[matchingKey || 'default'];
+  
+  return {
+    ...baseBreakdown,
+    source: 'mock',
+    timestamp: new Date().toISOString(),
+  };
 }
