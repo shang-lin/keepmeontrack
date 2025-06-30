@@ -22,8 +22,29 @@ export interface AIGoalBreakdown {
   timestamp: string;
 }
 
+// Configuration for guest AI query limits
+const GUEST_AI_QUERY_LIMIT = 2; // Easy to change this number
+
+// Check if guest user has exceeded AI query limit
+function hasExceededGuestLimit(): boolean {
+  // Check if we're in guest mode
+  const guestSession = sessionStorage.getItem('guest_session');
+  if (!guestSession) return false; // Not a guest user
+  
+  const savedCount = sessionStorage.getItem('guest_ai_query_count');
+  const queryCount = parseInt(savedCount || '0', 10);
+  
+  return queryCount >= GUEST_AI_QUERY_LIMIT;
+}
+
 // Secure AI integration using Supabase Edge Functions
 export async function generateHabitsAndMilestonesForGoal(goalTitle: string, goalDescription?: string): Promise<AIGoalBreakdown> {
+  // Check if guest user has exceeded limit - if so, use mock data immediately
+  if (hasExceededGuestLimit()) {
+    console.log('Guest AI query limit exceeded, using mock data');
+    return getMockBreakdown(goalTitle);
+  }
+
   try {
     // Call the secure Supabase Edge Function
     const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-goal-breakdown`;
@@ -240,6 +261,122 @@ function getMockBreakdown(goalTitle: string): AIGoalBreakdown {
           description: 'Discuss complex topics fluently for 30+ minutes',
           target_date_offset: 180,
           estimated_completion_time: '24-28 weeks',
+        },
+      ],
+    },
+    'lose weight': {
+      habits: [
+        {
+          title: 'Daily Exercise',
+          description: 'Engage in 30-45 minutes of physical activity',
+          frequency: 'daily',
+          frequency_value: 1,
+          estimated_duration: '30-45 minutes',
+        },
+        {
+          title: 'Meal Planning',
+          description: 'Plan healthy meals and track calories',
+          frequency: 'weekly',
+          frequency_value: 1,
+          estimated_duration: '1 hour',
+        },
+        {
+          title: 'Water Intake',
+          description: 'Drink at least 8 glasses of water daily',
+          frequency: 'daily',
+          frequency_value: 1,
+          estimated_duration: '5 minutes',
+        },
+        {
+          title: 'Sleep Schedule',
+          description: 'Maintain consistent 7-8 hours of sleep',
+          frequency: 'daily',
+          frequency_value: 1,
+          estimated_duration: '7-8 hours',
+        },
+      ],
+      milestones: [
+        {
+          title: 'First 5 Pounds Lost',
+          description: 'Achieve initial weight loss milestone',
+          target_date_offset: 21,
+          estimated_completion_time: '2-3 weeks',
+        },
+        {
+          title: 'Establish Exercise Routine',
+          description: 'Complete 30 consecutive days of exercise',
+          target_date_offset: 30,
+          estimated_completion_time: '4-5 weeks',
+        },
+        {
+          title: 'Halfway to Goal',
+          description: 'Reach 50% of your weight loss target',
+          target_date_offset: 90,
+          estimated_completion_time: '12-14 weeks',
+        },
+        {
+          title: 'Target Weight Achieved',
+          description: 'Reach your goal weight',
+          target_date_offset: 180,
+          estimated_completion_time: '24-26 weeks',
+        },
+      ],
+    },
+    'start business': {
+      habits: [
+        {
+          title: 'Market Research',
+          description: 'Research target market and competitors daily',
+          frequency: 'daily',
+          frequency_value: 1,
+          estimated_duration: '1-2 hours',
+        },
+        {
+          title: 'Business Plan Development',
+          description: 'Work on business plan sections',
+          frequency: 'weekly',
+          frequency_value: 3,
+          estimated_duration: '2 hours',
+        },
+        {
+          title: 'Networking',
+          description: 'Connect with potential customers and partners',
+          frequency: 'weekly',
+          frequency_value: 2,
+          estimated_duration: '1 hour',
+        },
+        {
+          title: 'Skill Development',
+          description: 'Learn business and industry-specific skills',
+          frequency: 'daily',
+          frequency_value: 1,
+          estimated_duration: '30-60 minutes',
+        },
+      ],
+      milestones: [
+        {
+          title: 'Business Idea Validation',
+          description: 'Validate your business concept with potential customers',
+          target_date_offset: 30,
+          estimated_completion_time: '3-4 weeks',
+        },
+        {
+          title: 'Complete Business Plan',
+          description: 'Finish comprehensive business plan',
+          target_date_offset: 60,
+          estimated_completion_time: '8-10 weeks',
+        },
+        {
+          title: 'Secure Initial Funding',
+          description: 'Obtain startup capital or investment',
+          target_date_offset: 120,
+          estimated_completion_time: '16-18 weeks',
+        },
+        {
+          title: 'Launch MVP',
+          description: 'Launch minimum viable product',
+          target_date_offset: 180,
+          estimated_completion_time: '24-26 weeks',
         },
       ],
     },

@@ -71,17 +71,12 @@ export function AIMilestoneHabitGenerator({
   const handleGenerate = async () => {
     if (!selectedGoal) return;
     
-    // Check if guest user has exceeded query limit
-    if (isGuest && !canMakeAIQuery()) {
-      return; // Button should be disabled, but extra safety check
-    }
-    
     setLoading(true);
     try {
       const breakdown = await generateHabitsAndMilestonesForGoal(selectedGoal.title, selectedGoal.description || undefined);
       
-      // Only increment counter for guest users and only if we got a response
-      if (isGuest) {
+      // Only increment counter for guest users if we made an actual AI query (not mock data due to limit)
+      if (isGuest && breakdown.source === 'openai' && canMakeAIQuery()) {
         setGuestQueryCount(prev => prev + 1);
       }
       
@@ -210,7 +205,6 @@ export function AIMilestoneHabitGenerator({
 
   const totalItems = generatedHabits.length + generatedMilestones.length;
   const remainingQueries = getRemainingQueries();
-  const canQuery = canMakeAIQuery();
 
   return (
     <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-200">
@@ -242,7 +236,7 @@ export function AIMilestoneHabitGenerator({
         <div className="flex flex-col items-end">
           <button
             onClick={handleGenerate}
-            disabled={loading || !selectedGoal || !canQuery}
+            disabled={loading || !selectedGoal}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
@@ -261,39 +255,18 @@ export function AIMilestoneHabitGenerator({
           {/* Guest query limit indicator */}
           {isGuest && (
             <div className="mt-2 text-xs text-gray-600 text-right">
-              {canQuery ? (
+              {canMakeAIQuery() ? (
                 <span>{remainingQueries} AI {remainingQueries === 1 ? 'query' : 'queries'} remaining</span>
               ) : (
                 <div className="flex items-center text-amber-600">
                   <AlertTriangle className="w-3 h-3 mr-1" />
-                  <span>AI query limit reached</span>
+                  <span>Using templates (AI limit reached)</span>
                 </div>
               )}
             </div>
           )}
         </div>
       </div>
-
-      {/* Guest limit warning */}
-      {isGuest && !canQuery && (
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <div className="flex items-start">
-            <AlertTriangle className="w-5 h-5 text-amber-600 mr-3 flex-shrink-0 mt-0.5" />
-            <div>
-              <h4 className="text-sm font-medium text-amber-800 mb-1">AI Query Limit Reached</h4>
-              <p className="text-sm text-amber-700 mb-3">
-                You've used all {GUEST_AI_QUERY_LIMIT} AI planning queries available in guest mode. Create a free account to get unlimited AI-powered goal planning.
-              </p>
-              <button
-                onClick={() => window.location.href = '/'}
-                className="px-3 py-1.5 bg-amber-600 text-white text-sm rounded-lg font-medium hover:bg-amber-700 transition-colors"
-              >
-                Create Account
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Goal Selector */}
       <div className="mb-6">
