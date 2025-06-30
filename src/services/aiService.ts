@@ -23,7 +23,7 @@ export interface AIGoalBreakdown {
 }
 
 // Configuration for guest AI query limits
-const GUEST_AI_QUERY_LIMIT = 2; // Easy to change this number
+const GUEST_AI_QUERY_LIMIT = 1; // Easy to change this number
 
 // Check if guest user has exceeded AI query limit
 function hasExceededGuestLimit(): boolean {
@@ -70,6 +70,13 @@ export async function generateHabitsAndMilestonesForGoal(goalTitle: string, goal
     // Validate the response structure
     if (!breakdown.habits || !breakdown.milestones || !Array.isArray(breakdown.habits) || !Array.isArray(breakdown.milestones)) {
       throw new Error('Invalid response structure from API');
+    }
+
+    // Increment guest query count if this was a successful AI query
+    const guestSession = sessionStorage.getItem('guest_session');
+    if (guestSession && breakdown.source === 'openai') {
+      const currentCount = parseInt(sessionStorage.getItem('guest_ai_query_count') || '0', 10);
+      sessionStorage.setItem('guest_ai_query_count', (currentCount + 1).toString());
     }
 
     return breakdown;

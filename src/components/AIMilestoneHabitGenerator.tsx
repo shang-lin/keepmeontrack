@@ -15,7 +15,7 @@ interface AIMilestoneHabitGeneratorProps {
 }
 
 // Configuration for guest AI query limits
-const GUEST_AI_QUERY_LIMIT = 2; // Easy to change this number
+const GUEST_AI_QUERY_LIMIT = 1; // Easy to change this number
 
 export function AIMilestoneHabitGenerator({ 
   goals, 
