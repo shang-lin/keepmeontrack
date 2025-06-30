@@ -18,33 +18,21 @@ export function useGoals() {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Return demo data if in demo mode
-  if (isDemoMode) {
-    return {
-      ...demoData,
-      // Add progress calculation for demo mode
-      getGoalProgress: (goalId: string) => {
-        const goal = demoData.goals.find(g => g.id === goalId);
-        return goal?.progress || 0;
-      },
-      calculateGoalProgress: (goalId: string) => {
-        const goal = demoData.goals.find(g => g.id === goalId);
-        return goal?.progress || 0;
-      },
-      updateGoalProgress: async () => {},
-      reorderHabits: async () => {},
-      reorderMilestones: async () => {},
-    };
-  }
-
   useEffect(() => {
-    if (user && !isDemoMode) {
+    if (isDemoMode) {
+      // Set demo data to local state
+      setGoals(demoData.goals);
+      setHabits(demoData.habits);
+      setHabitCompletions(demoData.habitCompletions);
+      setMilestones(demoData.milestones);
+      setLoading(false);
+    } else if (user) {
       fetchGoals();
       fetchHabits();
       fetchHabitCompletions();
       fetchMilestones();
     }
-  }, [user, isDemoMode]);
+  }, [user, isDemoMode, demoData]);
 
   // Calculate goal progress based on habits and milestones
   const calculateGoalProgress = (goalId: string) => {
@@ -123,6 +111,8 @@ export function useGoals() {
 
   // Update goal progress automatically
   const updateGoalProgress = async (goalId: string) => {
+    if (isDemoMode) return;
+
     const newProgress = calculateGoalProgress(goalId);
     
     // Only update if progress has changed
@@ -144,13 +134,15 @@ export function useGoals() {
 
   // Update all goal progress
   const updateAllGoalProgress = async () => {
+    if (isDemoMode) return;
+
     for (const goal of goals) {
       await updateGoalProgress(goal.id);
     }
   };
 
   const fetchGoals = async () => {
-    if (!user) return;
+    if (!user || isDemoMode) return;
 
     const { data, error } = await supabase
       .from('goals')
@@ -167,7 +159,7 @@ export function useGoals() {
   };
 
   const fetchHabits = async () => {
-    if (!user) return;
+    if (!user || isDemoMode) return;
 
     const { data, error } = await supabase
       .from('habits')
@@ -183,7 +175,7 @@ export function useGoals() {
   };
 
   const fetchHabitCompletions = async () => {
-    if (!user) return;
+    if (!user || isDemoMode) return;
 
     const { data, error } = await supabase
       .from('habit_completions')
@@ -198,7 +190,7 @@ export function useGoals() {
   };
 
   const fetchMilestones = async () => {
-    if (!user) return;
+    if (!user || isDemoMode) return;
 
     const { data, error } = await supabase
       .from('milestones')
@@ -214,6 +206,15 @@ export function useGoals() {
   };
 
   const createGoal = async (goalData: Omit<Database['public']['Tables']['goals']['Insert'], 'user_id'>) => {
+    if (isDemoMode) {
+      // For demo mode, use the demo data method
+      const result = await demoData.createGoal(goalData);
+      if (result) {
+        setGoals(demoData.goals);
+      }
+      return result;
+    }
+
     if (!user) return null;
 
     const { data, error } = await supabase
@@ -232,6 +233,14 @@ export function useGoals() {
   };
 
   const updateGoal = async (id: string, updates: Database['public']['Tables']['goals']['Update']) => {
+    if (isDemoMode) {
+      const result = await demoData.updateGoal(id, updates);
+      if (result) {
+        setGoals(demoData.goals);
+      }
+      return result;
+    }
+
     const { data, error } = await supabase
       .from('goals')
       .update(updates)
@@ -249,6 +258,16 @@ export function useGoals() {
   };
 
   const deleteGoal = async (id: string) => {
+    if (isDemoMode) {
+      const result = await demoData.deleteGoal(id);
+      if (result) {
+        setGoals(demoData.goals);
+        setHabits(demoData.habits);
+        setMilestones(demoData.milestones);
+      }
+      return result;
+    }
+
     const { error } = await supabase
       .from('goals')
       .delete()
@@ -266,6 +285,14 @@ export function useGoals() {
   };
 
   const createHabit = async (habitData: Omit<Database['public']['Tables']['habits']['Insert'], 'user_id'>) => {
+    if (isDemoMode) {
+      const result = await demoData.createHabit(habitData);
+      if (result) {
+        setHabits(demoData.habits);
+      }
+      return result;
+    }
+
     if (!user) return null;
 
     const { data, error } = await supabase
@@ -286,6 +313,14 @@ export function useGoals() {
   };
 
   const updateHabit = async (id: string, updates: Database['public']['Tables']['habits']['Update']) => {
+    if (isDemoMode) {
+      const result = await demoData.updateHabit(id, updates);
+      if (result) {
+        setHabits(demoData.habits);
+      }
+      return result;
+    }
+
     const { data, error } = await supabase
       .from('habits')
       .update(updates)
@@ -307,6 +342,17 @@ export function useGoals() {
   };
 
   const deleteHabit = async (id: string) => {
+    if (isDemoMode) {
+      // Get the habit to know which goal to update
+      const habit = habits.find(h => h.id === id);
+      const result = await demoData.deleteHabit(id);
+      if (result) {
+        setHabits(demoData.habits);
+        setHabitCompletions(demoData.habitCompletions);
+      }
+      return result;
+    }
+
     // Get the habit to know which goal to update
     const habit = habits.find(h => h.id === id);
     
@@ -331,6 +377,14 @@ export function useGoals() {
   };
 
   const createMilestone = async (milestoneData: Omit<Database['public']['Tables']['milestones']['Insert'], 'user_id'>) => {
+    if (isDemoMode) {
+      const result = await demoData.createMilestone(milestoneData);
+      if (result) {
+        setMilestones(demoData.milestones);
+      }
+      return result;
+    }
+
     if (!user) return null;
 
     const { data, error } = await supabase
@@ -351,6 +405,14 @@ export function useGoals() {
   };
 
   const updateMilestone = async (id: string, updates: Database['public']['Tables']['milestones']['Update']) => {
+    if (isDemoMode) {
+      const result = await demoData.updateMilestone(id, updates);
+      if (result) {
+        setMilestones(demoData.milestones);
+      }
+      return result;
+    }
+
     const { data, error } = await supabase
       .from('milestones')
       .update(updates)
@@ -372,6 +434,14 @@ export function useGoals() {
   };
 
   const deleteMilestone = async (id: string) => {
+    if (isDemoMode) {
+      const result = await demoData.deleteMilestone(id);
+      if (result) {
+        setMilestones(demoData.milestones);
+      }
+      return result;
+    }
+
     // Get the milestone to know which goal to update
     const milestone = milestones.find(m => m.id === id);
     
@@ -395,6 +465,14 @@ export function useGoals() {
   };
 
   const toggleHabitCompletion = async (habitId: string, date: Date) => {
+    if (isDemoMode) {
+      const result = await demoData.toggleHabitCompletion(habitId, date);
+      if (result) {
+        setHabitCompletions(demoData.habitCompletions);
+      }
+      return result;
+    }
+
     if (!user) return false;
 
     const dateString = date.toISOString().split('T')[0];
@@ -445,6 +523,10 @@ export function useGoals() {
   };
 
   const isHabitCompletedOnDate = (habitId: string, date: Date) => {
+    if (isDemoMode) {
+      return demoData.isHabitCompletedOnDate(habitId, date);
+    }
+
     const dateString = date.toISOString().split('T')[0];
     return habitCompletions.some(
       completion => 
@@ -454,6 +536,12 @@ export function useGoals() {
   };
 
   const reorderHabits = async (habitIds: string[]) => {
+    if (isDemoMode) {
+      await demoData.reorderHabits(habitIds);
+      setHabits(demoData.habits);
+      return;
+    }
+
     const updates = habitIds.map((id, index) => ({
       id,
       order_index: index,
@@ -470,6 +558,12 @@ export function useGoals() {
   };
 
   const reorderMilestones = async (milestoneIds: string[]) => {
+    if (isDemoMode) {
+      await demoData.reorderMilestones(milestoneIds);
+      setMilestones(demoData.milestones);
+      return;
+    }
+
     const updates = milestoneIds.map((id, index) => ({
       id,
       order_index: index,
@@ -500,10 +594,10 @@ export function useGoals() {
 
   // Update progress for all goals when data changes
   useEffect(() => {
-    if (goals.length > 0 && habits.length >= 0 && milestones.length >= 0) {
+    if (goals.length > 0 && habits.length >= 0 && milestones.length >= 0 && !isDemoMode) {
       updateAllGoalProgress();
     }
-  }, [habitCompletions, milestones]);
+  }, [habitCompletions, milestones, isDemoMode]);
 
   return {
     goals,
@@ -530,10 +624,17 @@ export function useGoals() {
     calculateGoalProgress,
     updateGoalProgress,
     refetch: () => {
-      fetchGoals();
-      fetchHabits();
-      fetchHabitCompletions();
-      fetchMilestones();
+      if (isDemoMode) {
+        setGoals(demoData.goals);
+        setHabits(demoData.habits);
+        setHabitCompletions(demoData.habitCompletions);
+        setMilestones(demoData.milestones);
+      } else {
+        fetchGoals();
+        fetchHabits();
+        fetchHabitCompletions();
+        fetchMilestones();
+      }
     },
   };
 }
