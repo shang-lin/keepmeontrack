@@ -65,7 +65,7 @@ export function useAuth() {
   };
 
   const signOut = async () => {
-    // Clear demo mode
+    // Clear demo mode first
     if (isDemoMode) {
       localStorage.removeItem('demo_mode');
       setIsDemoMode(false);
@@ -73,6 +73,7 @@ export function useAuth() {
       return { error: null };
     }
 
+    // Regular sign out
     const { error } = await supabase.auth.signOut();
     return { error };
   };

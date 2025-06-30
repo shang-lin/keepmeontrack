@@ -14,11 +14,12 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
   const { user, signOut, isDemoMode } = useAuth();
 
   const handleSignOut = async () => {
+    const wasDemoMode = isDemoMode; // Capture the current state before signOut
     const { error } = await signOut();
     if (error) {
       toast.error('Error signing out');
     } else {
-      toast.success(isDemoMode ? 'Demo session ended' : 'Signed out successfully');
+      toast.success(wasDemoMode ? 'Demo session ended' : 'Signed out successfully');
     }
   };
 
