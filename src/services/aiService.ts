@@ -23,7 +23,7 @@ export interface AIGoalBreakdown {
 }
 
 // Configuration for guest AI query limits
-const GUEST_AI_QUERY_LIMIT = 1; // Easy to change this number
+const GUEST_AI_QUERY_LIMIT = 0; // Easy to change this number
 
 // Check if guest user has exceeded AI query limit
 function hasExceededGuestLimit(): boolean {
